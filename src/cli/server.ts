@@ -165,12 +165,22 @@ export function startServer(rootDir: string, port: number = 3456, shouldOpen: bo
       return;
     }
 
-    // Static Web Assets Server
-    let filePath = path.join(webDistDir, pathname === '/' ? 'index.html' : pathname);
+    // Prevent path traversal
+    const safePath = path.normalize(pathname).replace(/^(\.\.[\/\\])+/, '');
+    let filePath = path.join(webDistDir, safePath === '/' || safePath === '' ? 'index.html' : safePath);
 
     // If file doesn't exist directly and is not an API call, fallback to index.html for SPA routing
     if (!fs.existsSync(filePath) || fs.statSync(filePath).isDirectory()) {
       filePath = path.join(webDistDir, 'index.html');
+    }
+
+    // Enforce that filePath must be within webDistDir
+    const resolvedPath = path.resolve(filePath);
+    const resolvedDist = path.resolve(webDistDir);
+    if (!resolvedPath.startsWith(resolvedDist)) {
+      res.writeHead(403, { 'Content-Type': 'text/plain' });
+      res.end('Access denied');
+      return;
     }
 
     if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
@@ -181,6 +191,15 @@ export function startServer(rootDir: string, port: number = 3456, shouldOpen: bo
     } else {
       res.writeHead(404, { 'Content-Type': 'text/plain' });
       res.end('Web bundle not found. Please ensure what-is-it web assets are built.');
+    }
+  });
+
+  server.on('error', (err: any) => {
+    if (err.code === 'EADDRINUSE') {
+      console.log(pc.yellow(`⚠️ Port ${port} is in use, attempting port ${port + 1}...`));
+      startServer(rootDir, port + 1, shouldOpen);
+    } else {
+      console.error(pc.red(`Server error: ${err.message}`));
     }
   });
 

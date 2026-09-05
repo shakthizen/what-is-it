@@ -50,7 +50,7 @@ function scanDirectory(dir: string, maxDepth: number = 3, currentDepth: number =
   const result: { files: string[]; dirs: string[] } = { files: [], dirs: [] };
   if (currentDepth > maxDepth || !fs.existsSync(dir)) return result;
 
-  const ignored = new Set(['node_modules', '.git', 'dist', 'build', '.next', '.cache', 'coverage', '.turbo', '.dart_tool']);
+  const ignored = new Set(['node_modules', '.git', 'dist', 'docs', 'build', '.next', '.cache', 'coverage', '.turbo', '.dart_tool', '.what-is-it.bin']);
 
   try {
     const entries = fs.readdirSync(dir, { withFileTypes: true });

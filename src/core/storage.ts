@@ -52,7 +52,7 @@ export function saveProjectData(
 
   const binBuffer = Buffer.concat([MAGIC_HEADER, compressed]);
   const binPath = path.resolve(targetDir, fileName);
-  const tmpPath = `${binPath}.tmp-${Date.now()}`;
+  const tmpPath = `${binPath}.tmp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
   // Atomic write
   fs.writeFileSync(tmpPath, binBuffer);

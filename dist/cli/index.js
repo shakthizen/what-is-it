@@ -6,7 +6,7 @@ import {
   saveProjectData,
   scanProject,
   synthesizeProjectData
-} from "../chunk-6PRI3TT6.js";
+} from "../chunk-WBSBVVC6.js";
 
 // src/cli/index.ts
 import { Command } from "commander";
@@ -230,9 +230,17 @@ function startServer(rootDir, port = 3456, shouldOpen = true) {
       });
       return;
     }
-    let filePath = path2.join(webDistDir, pathname === "/" ? "index.html" : pathname);
+    const safePath = path2.normalize(pathname).replace(/^(\.\.[\/\\])+/, "");
+    let filePath = path2.join(webDistDir, safePath === "/" || safePath === "" ? "index.html" : safePath);
     if (!fs2.existsSync(filePath) || fs2.statSync(filePath).isDirectory()) {
       filePath = path2.join(webDistDir, "index.html");
+    }
+    const resolvedPath = path2.resolve(filePath);
+    const resolvedDist = path2.resolve(webDistDir);
+    if (!resolvedPath.startsWith(resolvedDist)) {
+      res.writeHead(403, { "Content-Type": "text/plain" });
+      res.end("Access denied");
+      return;
     }
     if (fs2.existsSync(filePath) && fs2.statSync(filePath).isFile()) {
       const ext = path2.extname(filePath).toLowerCase();
@@ -242,6 +250,14 @@ function startServer(rootDir, port = 3456, shouldOpen = true) {
     } else {
       res.writeHead(404, { "Content-Type": "text/plain" });
       res.end("Web bundle not found. Please ensure what-is-it web assets are built.");
+    }
+  });
+  server.on("error", (err) => {
+    if (err.code === "EADDRINUSE") {
+      console.log(pc.yellow(`\u26A0\uFE0F Port ${port} is in use, attempting port ${port + 1}...`));
+      startServer(rootDir, port + 1, shouldOpen);
+    } else {
+      console.error(pc.red(`Server error: ${err.message}`));
     }
   });
   server.listen(port, () => {
@@ -378,7 +394,7 @@ taskCmd.command("add").description("Add a new task to the project").requiredOpti
     process.exit(1);
   }
   const featureId = options.feature || (data.features[0]?.id || "core");
-  const taskId = `task-${Date.now().toString().slice(-4)}`;
+  const taskId = `task-${data.tasks.length + 1}-${Math.random().toString(36).slice(2, 6)}`;
   const newTask = {
     id: taskId,
     featureId,

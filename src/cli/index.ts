@@ -124,7 +124,7 @@ taskCmd
     }
 
     const featureId = options.feature || (data.features[0]?.id || 'core');
-    const taskId = `task-${Date.now().toString().slice(-4)}`;
+    const taskId = `task-${data.tasks.length + 1}-${Math.random().toString(36).slice(2, 6)}`;
 
     const newTask: Task = {
       id: taskId,

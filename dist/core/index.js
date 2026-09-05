@@ -9,7 +9,7 @@ import {
   saveProjectData,
   scanProject,
   synthesizeProjectData
-} from "../chunk-6PRI3TT6.js";
+} from "../chunk-WBSBVVC6.js";
 export {
   DEFAULT_FILE_NAME,
   DEFAULT_MARKDOWN_NAME,

@@ -18,7 +18,7 @@
     "build:cli": "tsup",
     "build:pages": "node scripts/export-static.js",
     "build": "pnpm build:web && pnpm build:cli && pnpm build:pages",
-    "test": "tsx --test test/core.test.ts",
+    "test": "tsx --test 'test/**/*.test.ts'",
     "start": "node ./bin/what-is-it.js"
   },
   "keywords": [
