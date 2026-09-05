@@ -1,6 +1,7 @@
 import { Command } from 'commander';
 import path from 'node:path';
 import fs from 'node:fs';
+import readline from 'node:readline';
 import pc from 'picocolors';
 import {
   loadProjectData,
@@ -11,7 +12,8 @@ import {
 } from '../core/storage.js';
 import { scanProject, synthesizeProjectData } from '../core/scanner.js';
 import { generateMarkdownOverview } from '../core/markdown.js';
-import { installSkills } from './skills.js';
+import { getProjectJsonSchema } from '../core/schema.js';
+import { installSkills, installGlobalSkill } from './skills.js';
 import { startServer } from './server.js';
 import {
   formatCavemanStatus,
@@ -27,6 +29,17 @@ program
   .description('Live Project Memory, Task Tracker & Interactive Wiki for Vibe Coding')
   .version('1.0.0');
 
+function askQuestion(query: string): Promise<string> {
+  if (!process.stdin.isTTY) return Promise.resolve('');
+  const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+  return new Promise(resolve => {
+    rl.question(query, answer => {
+      rl.close();
+      resolve(answer.trim().toLowerCase());
+    });
+  });
+}
+
 // Default action: if no command passed, launch UI
 program
   .command('ui', { isDefault: true })
@@ -38,7 +51,8 @@ program
     if (!projectExists(cwd)) {
       console.log(pc.yellow(`No ${DEFAULT_FILE_NAME} found in current directory.`));
       console.log(`Running auto-mapping initialization first...\n`);
-      runInit(cwd, false);
+      runInit(cwd, { force: false, open: options.open });
+      return;
     }
     const port = parseInt(options.port, 10) || 3456;
     startServer(cwd, port, options.open !== false);
@@ -49,18 +63,20 @@ program
   .command('init')
   .description('Map the existing codebase, create .what-is-it.bin, and install agent skills')
   .option('-f, --force', 'Overwrite existing state if already initialized')
+  .option('-g, --global', 'Install agent skill globally for all projects')
+  .option('--no-global', 'Do not install skill globally')
   .action((options) => {
-    runInit(process.cwd(), options.force);
+    runInit(process.cwd(), options);
   });
 
-function runInit(cwd: string, force: boolean) {
-  if (projectExists(cwd) && !force) {
+async function runInit(cwd: string, options: { force?: boolean; global?: boolean; open?: boolean } = {}) {
+  if (projectExists(cwd) && !options.force) {
     console.log(pc.yellow(`⚠️ ${DEFAULT_FILE_NAME} already exists in ${cwd}.`));
     console.log(`Use ${pc.cyan('--force')} to overwrite, or run ${pc.cyan('npx what-is-it')} to open viewer.`);
     return;
   }
 
-  console.log(pc.bold(pc.cyan('🔍 Mapping project codebase & architecture...')));
+  console.log(pc.bold(pc.cyan('\n🔍 Mapping project codebase & architecture...')));
   const scanContext = scanProject(cwd);
 
   console.log(`- Project Name: ${pc.bold(scanContext.projectName)}`);
@@ -71,20 +87,50 @@ function runInit(cwd: string, force: boolean) {
   const projectData = synthesizeProjectData(scanContext);
   const { binPath, mdPath } = saveProjectData(cwd, projectData);
 
-  console.log(pc.green(`\n✔ Saved compressed binary: ${binPath} (${fs.statSync(binPath).size} bytes)`));
+  console.log(pc.green(`✔ Saved compressed binary: ${binPath} (${fs.statSync(binPath).size} bytes)`));
   if (mdPath) {
     console.log(pc.green(`✔ Generated markdown overview: ${mdPath}`));
   }
 
-  // Install agent skills
-  const { skillPath, rulesUpdated } = installSkills(cwd);
-  console.log(pc.green(`✔ Installed agent skill: ${skillPath}`));
+  // Install agent skills & slash commands
+  const { skillPath, rulesUpdated, slashCommands } = installSkills({
+    rootDir: cwd,
+    meta: projectData.meta
+  });
+  console.log(pc.green(`✔ Installed project-specific skill: ${skillPath}`));
+  console.log(pc.green(`✔ Installed native slash commands: ${slashCommands.join(', ')}`));
   if (rulesUpdated.length > 0) {
-    console.log(pc.green(`✔ Updated agent guidelines: ${rulesUpdated.join(', ')}`));
+    console.log(pc.green(`✔ Updated multi-agent rules: ${rulesUpdated.join(', ')}`));
   }
 
-  console.log('\n' + formatCavemanSuccess('PROJECT INITIALIZED & MAPPED', scanContext.projectName));
-  console.log(`${pc.dim('Run')} ${pc.cyan('npx what-is-it')} ${pc.dim('to launch interactive browser dashboard.')}\n`);
+  // Ask for global skill installation if interactive
+  let shouldInstallGlobal = options.global === true;
+  if (!shouldInstallGlobal && options.global !== false && process.stdin.isTTY) {
+    const answer = await askQuestion(`\n${pc.cyan('?')} Install what-is-it skill globally for all projects on this machine? (Y/n) `);
+    if (answer === '' || answer === 'y' || answer === 'yes') {
+      shouldInstallGlobal = true;
+    }
+  }
+
+  if (shouldInstallGlobal) {
+    const { globalSkillPath, success } = installGlobalSkill();
+    if (success) {
+      console.log(pc.green(`✔ Installed global agent skill: ${globalSkillPath}`));
+    }
+  }
+
+  // Prominent onboarding call-to-action banner
+  console.log('\n' + pc.bold(pc.cyan('═'.repeat(68))));
+  console.log(pc.bold(pc.green('  🎉 what-is-it project memory initialized successfully!')));
+  console.log(pc.bold(pc.cyan('═'.repeat(68))));
+  console.log(`\n${pc.bold(pc.yellow('👉 NEXT STEP (DELEGATE TO YOUR AI AGENT):'))}`);
+  console.log(`   Open your AI Agent chat (Antigravity, Cursor, Claude Code) and type:`);
+  console.log(`   ${pc.bold(pc.magenta('/what-is-it-init'))}`);
+  console.log(`   ${pc.dim('-> Your agent will analyze the codebase and formulate deep domain tasks & user flows.')}\n`);
+  console.log(`   ${pc.bold(pc.cyan('/status'))}        - Check active tasks and progress anytime`);
+  console.log(`   ${pc.bold(pc.cyan('/task-done'))}     - Mark tasks done as you code`);
+  console.log(`   ${pc.bold(pc.cyan('npx what-is-it'))} - Open the live web viewer in your browser\n`);
+  console.log(pc.bold(pc.cyan('═'.repeat(68))) + '\n');
 }
 
 // Status command (Agent-friendly caveman output)
@@ -99,6 +145,40 @@ program
       process.exit(1);
     }
     console.log(formatCavemanStatus(data));
+  });
+
+// Schema command for AI Agents
+program
+  .command('schema')
+  .description('Print the complete JSON schema for what-is-it project state (ideal for AI agents)')
+  .action(() => {
+    console.log(JSON.stringify(getProjectJsonSchema(), null, 2));
+  });
+
+// Standalone skill installer
+program
+  .command('install-skill')
+  .description('Install agent skills, rules, and slash commands')
+  .option('-g, --global', 'Install globally into user config directory')
+  .action((options) => {
+    const cwd = process.cwd();
+    if (options.global) {
+      const { globalSkillPath, success } = installGlobalSkill();
+      if (success) {
+        console.log(pc.green(`✔ Installed global agent skill: ${globalSkillPath}`));
+      }
+    } else {
+      const data = loadProjectData(cwd);
+      const { skillPath, rulesUpdated, slashCommands } = installSkills({
+        rootDir: cwd,
+        meta: data?.meta
+      });
+      console.log(pc.green(`✔ Installed project-specific skill: ${skillPath}`));
+      console.log(pc.green(`✔ Installed slash commands: ${slashCommands.join(', ')}`));
+      if (rulesUpdated.length > 0) {
+        console.log(pc.green(`✔ Updated rules: ${rulesUpdated.join(', ')}`));
+      }
+    }
   });
 
 // Task commands

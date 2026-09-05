@@ -1,23 +1,34 @@
 import {
   DEFAULT_FILE_NAME,
   generateMarkdownOverview,
+  getProjectJsonSchema,
   loadProjectData,
   projectExists,
   saveProjectData,
   scanProject,
   synthesizeProjectData
-} from "../chunk-WBSBVVC6.js";
+} from "../chunk-AGAEX34J.js";
 
 // src/cli/index.ts
 import { Command } from "commander";
 import path3 from "path";
 import fs3 from "fs";
-import pc3 from "picocolors";
+import readline from "readline";
+import pc4 from "picocolors";
 
 // src/cli/skills.ts
 import fs from "fs";
 import path from "path";
-var SKILL_CONTENT = `---
+import os from "os";
+import pc from "picocolors";
+function generateDynamicSkill(options) {
+  const { rootDir, meta, binFileName = ".what-is-it.bin" } = options;
+  const absBinPath = path.resolve(rootDir, binFileName);
+  const relBinPath = `./${binFileName}`;
+  const name = meta?.name || path.basename(rootDir);
+  const type = meta?.projectType || "project";
+  const frameworks = meta?.frameworks?.join(", ") || "Auto-detected";
+  return `---
 name: what-is-it
 description: Live project memory, task tracker, and visual wiki. Use when starting work, completing tasks, adding features, or checking architecture.
 ---
@@ -26,33 +37,44 @@ description: Live project memory, task tracker, and visual wiki. Use when starti
 
 Ugg. Agent listen good.
 This project uses \`what-is-it\` to track tasks, architecture, and UI flows.
-Project state stored in \`.what-is-it.bin\` (compressed binary).
-Overview mirror stored in \`WHAT_IS_IT.md\`.
+
+## PROJECT CONTEXT:
+- **Project Name**: ${name}
+- **Project Type**: \`${type}\`
+- **Frameworks**: ${frameworks}
+- **Binary State File (Primary)**:
+  - Relative: \`${relBinPath}\`
+  - Absolute: \`${absBinPath}\`
+- **Markdown Overview (Mirror)**: \`./WHAT_IS_IT.md\`
+- **Web Dashboard**: Run \`npx what-is-it\` to view live dynamic progress, right-rail wiki, and SVG React Flow canvas.
 
 ## AGENT RULES (FOLLOW STRICT):
 
-1. TASK START:
+1. TASK START / SESSION ALIGNMENT:
    Run \`npx what-is-it status\` first.
    Check active tasks, target files (WHERE), rationale (WHY), and technical approach (HOW).
 
 2. TASK FINISH:
    When work done, run:
    \`npx what-is-it task done <task-id>\`
-   Binary updates. Progress increments. Browser live-reloads via SSE.
+   Binary updates immediately. Progress increments. Browser live-reloads via SSE.
 
 3. NEW TASK:
-   When new work discovered, run:
+   When new work is discovered or planned, run:
    \`npx what-is-it task add --feature "<feature-id>" --title "<title>" --why "<why>" --how "<how>" --where "<files>" --when "<phase>"\`
 
-4. NEW FEATURE:
-   When building major module, run:
-   \`npx what-is-it feature add --id "<id>" --title "<title>" --desc "<desc>"\`
-
-5. VIEW INTERACTIVE DASHBOARD:
-   Run \`npx what-is-it\` to view live dynamic progress, right-rail wiki, and SVG React Flow canvas in browser.
+4. DEEP CODEBASE BOOTSTRAP (/what-is-it-init):
+   When user runs \`/what-is-it-init\` in chat:
+   - Deeply analyze this codebase (manifests, routes, components, services, database models).
+   - Formulate real features, tasks with (Why, How, Where, When), multi-page Wiki docs, and React Flow user journeys with SVG mockup frames.
+   - Run \`npx what-is-it schema\` if you need the exact JSON schema.
+   - Save the synthesized state to a temporary JSON file (e.g. \`scratch/what-is-it-state.json\`).
+   - Execute: \`npx what-is-it import scratch/what-is-it-state.json\`.
+   - Run \`npx what-is-it status\` to confirm.
 
 Live memory stops vibe coding amnesia. Always keep state fresh.
 `;
+}
 var AGENT_RULE_MARKER = "<!-- WHAT_IS_IT_START -->";
 var AGENT_RULE_CONTENT = `
 <!-- WHAT_IS_IT_START -->
@@ -63,29 +85,160 @@ Ugg. This project tracks live memory with \`what-is-it\`.
 - Keep \`.what-is-it.bin\` live and fresh.
 <!-- WHAT_IS_IT_END -->
 `;
-function installSkills(rootDir) {
+function installSkills(options) {
+  const { rootDir } = options;
+  const rulesUpdated = [];
+  const slashCommands = [];
   const skillDir = path.join(rootDir, ".agents", "skills", "what-is-it");
   fs.mkdirSync(skillDir, { recursive: true });
   const skillPath = path.join(skillDir, "SKILL.md");
-  fs.writeFileSync(skillPath, SKILL_CONTENT, "utf-8");
-  const rulesUpdated = [];
-  const targetRuleFiles = ["AGENTS.md", "GEMINI.md"];
-  for (const file of targetRuleFiles) {
+  const skillContent = generateDynamicSkill(options);
+  fs.writeFileSync(skillPath, skillContent, "utf-8");
+  const agWorkflowDir = path.join(rootDir, ".agent", "workflows");
+  fs.mkdirSync(agWorkflowDir, { recursive: true });
+  fs.writeFileSync(
+    path.join(agWorkflowDir, "what-is-it-init.md"),
+    `---
+description: Deeply analyze this codebase and initialize live project memory with what-is-it
+---
+
+# Initialize Project Memory (what-is-it)
+
+You are the Project Memory Architect.
+1. Read the codebase (package manifests, main routes, key components, services, and README).
+2. Understand:
+   - The product overview & architecture summary
+   - Identified actor roles (e.g. Guest, Authenticated User, Admin)
+   - Core features grouped logically
+   - Key completed and pending tasks with Why, How, Where, and When
+   - Multi-page Wiki documentation with bookmarks
+   - Visual user flow with vector SVG mockup frames (Desktop, Mobile, Modal)
+3. Check the schema with \`npx what-is-it schema\`.
+4. Formulate the comprehensive JSON and write to a temporary file (e.g. \`scratch/what-is-it-state.json\`).
+5. Execute: \`npx what-is-it import scratch/what-is-it-state.json\`.
+6. Run \`npx what-is-it status\` to verify.
+`,
+    "utf-8"
+  );
+  slashCommands.push("/what-is-it-init");
+  fs.writeFileSync(
+    path.join(agWorkflowDir, "status.md"),
+    `---
+description: Check live project memory status, progress percentage, and active tasks
+---
+
+Run \`npx what-is-it status\` in the terminal and summarize the current focus task, why doing it, and target files.
+`,
+    "utf-8"
+  );
+  slashCommands.push("/status");
+  fs.writeFileSync(
+    path.join(agWorkflowDir, "task-done.md"),
+    `---
+description: Mark a task as completed in what-is-it project memory
+---
+
+Mark the task complete:
+Run \`npx what-is-it task done <task-id>\`.
+If no task ID is provided, look at recently completed work, find the matching task ID, mark it done, and report updated overall progress.
+`,
+    "utf-8"
+  );
+  slashCommands.push("/task-done");
+  fs.writeFileSync(
+    path.join(agWorkflowDir, "what-is-it.md"),
+    `---
+description: Review high-level project architecture, features, and launch the web viewer
+---
+
+1. Run \`npx what-is-it status\` to inspect current project status.
+2. Tell the user to run \`npx what-is-it\` in terminal if they wish to open the live interactive dashboard and React Flow canvas in their browser.
+`,
+    "utf-8"
+  );
+  slashCommands.push("/what-is-it");
+  const claudeCmdDir = path.join(rootDir, ".claude", "commands");
+  try {
+    fs.mkdirSync(claudeCmdDir, { recursive: true });
+    fs.copyFileSync(path.join(agWorkflowDir, "what-is-it-init.md"), path.join(claudeCmdDir, "what-is-it-init.md"));
+    fs.copyFileSync(path.join(agWorkflowDir, "status.md"), path.join(claudeCmdDir, "status.md"));
+    fs.copyFileSync(path.join(agWorkflowDir, "task-done.md"), path.join(claudeCmdDir, "task-done.md"));
+    fs.copyFileSync(path.join(agWorkflowDir, "what-is-it.md"), path.join(claudeCmdDir, "what-is-it.md"));
+  } catch {
+  }
+  const cursorRulesDir = path.join(rootDir, ".cursor", "rules");
+  try {
+    fs.mkdirSync(cursorRulesDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(cursorRulesDir, "what-is-it.mdc"),
+      `---
+description: Live project memory protocol for what-is-it
+globs: *
+---
+${AGENT_RULE_CONTENT.trim()}
+`,
+      "utf-8"
+    );
+  } catch {
+  }
+  const ruleFiles = [
+    "AGENTS.md",
+    "GEMINI.md",
+    "CLAUDE.md",
+    ".cursorrules",
+    ".windsurfrules",
+    ".clinerules",
+    ".github/copilot-instructions.md"
+  ];
+  for (const file of ruleFiles) {
     const rulePath = path.join(rootDir, file);
+    const parentDir = path.dirname(rulePath);
+    if (!fs.existsSync(parentDir)) {
+      try {
+        fs.mkdirSync(parentDir, { recursive: true });
+      } catch {
+        continue;
+      }
+    }
     if (fs.existsSync(rulePath)) {
       const existing = fs.readFileSync(rulePath, "utf-8");
       if (!existing.includes(AGENT_RULE_MARKER)) {
         fs.writeFileSync(rulePath, existing + "\n" + AGENT_RULE_CONTENT, "utf-8");
         rulesUpdated.push(file);
       }
+    } else if (file === "AGENTS.md" || file === "CLAUDE.md" || file === ".cursorrules") {
+      fs.writeFileSync(rulePath, AGENT_RULE_CONTENT.trim() + "\n", "utf-8");
+      rulesUpdated.push(file);
     }
   }
-  if (rulesUpdated.length === 0 && !fs.existsSync(path.join(rootDir, "AGENTS.md"))) {
-    const agentsPath = path.join(rootDir, "AGENTS.md");
-    fs.writeFileSync(agentsPath, AGENT_RULE_CONTENT.trim() + "\n", "utf-8");
-    rulesUpdated.push("AGENTS.md");
+  return { skillPath, rulesUpdated, slashCommands };
+}
+function installGlobalSkill() {
+  try {
+    const homeDir = os.homedir();
+    const globalSkillDir = path.join(homeDir, ".gemini", "config", "skills", "what-is-it");
+    fs.mkdirSync(globalSkillDir, { recursive: true });
+    const globalSkillPath = path.join(globalSkillDir, "SKILL.md");
+    const globalContent = `---
+name: what-is-it
+description: Live project memory, task tracker, and visual wiki. Use when starting work, completing tasks, adding features, or checking architecture.
+---
+
+# WHAT-IS-IT: LIVE PROJECT MEMORY & WIKI (GLOBAL SYSTEM SKILL)
+
+Ugg. Agent listen good.
+When working in any project that uses \`what-is-it\`:
+1. Check project status: \`npx what-is-it status\`
+2. When completing tasks: \`npx what-is-it task done <id>\`
+3. When adding tasks: \`npx what-is-it task add --title "..." --why "..." --where "..."\`
+4. View live dashboard: \`npx what-is-it\`
+`;
+    fs.writeFileSync(globalSkillPath, globalContent, "utf-8");
+    return { globalSkillPath, success: true };
+  } catch (err) {
+    console.error(pc.red(`Failed to install global skill: ${err.message}`));
+    return { globalSkillPath: "", success: false };
   }
-  return { skillPath, rulesUpdated };
 }
 
 // src/cli/server.ts
@@ -94,7 +247,7 @@ import fs2 from "fs";
 import path2 from "path";
 import { fileURLToPath } from "url";
 import open from "open";
-import pc from "picocolors";
+import pc2 from "picocolors";
 var MIME_TYPES = {
   ".html": "text/html; charset=utf-8",
   ".js": "text/javascript; charset=utf-8",
@@ -114,7 +267,7 @@ var MIME_TYPES = {
 function startServer(rootDir, port = 3456, shouldOpen = true) {
   const binPath = path2.resolve(rootDir, DEFAULT_FILE_NAME);
   if (!fs2.existsSync(binPath)) {
-    console.error(pc.red(`Error: ${DEFAULT_FILE_NAME} not found in ${rootDir}. Run 'npx what-is-it init' first.`));
+    console.error(pc2.red(`Error: ${DEFAULT_FILE_NAME} not found in ${rootDir}. Run 'npx what-is-it init' first.`));
     process.exit(1);
   }
   const currentDir = path2.dirname(fileURLToPath(import.meta.url));
@@ -254,19 +407,19 @@ function startServer(rootDir, port = 3456, shouldOpen = true) {
   });
   server.on("error", (err) => {
     if (err.code === "EADDRINUSE") {
-      console.log(pc.yellow(`\u26A0\uFE0F Port ${port} is in use, attempting port ${port + 1}...`));
+      console.log(pc2.yellow(`\u26A0\uFE0F Port ${port} is in use, attempting port ${port + 1}...`));
       startServer(rootDir, port + 1, shouldOpen);
     } else {
-      console.error(pc.red(`Server error: ${err.message}`));
+      console.error(pc2.red(`Server error: ${err.message}`));
     }
   });
   server.listen(port, () => {
     const url = `http://localhost:${port}`;
     console.log(`
-${pc.bold(pc.green("\u{1F680} what-is-it web viewer running!"))}`);
-    console.log(`   ${pc.bold("Local URL:")}     ${pc.cyan(url)}`);
-    console.log(`   ${pc.bold("State File:")}    ${pc.dim(binPath)}`);
-    console.log(`   ${pc.bold("Live Updates:")}  ${pc.magenta("Active (SSE)")}
+${pc2.bold(pc2.green("\u{1F680} what-is-it web viewer running!"))}`);
+    console.log(`   ${pc2.bold("Local URL:")}     ${pc2.cyan(url)}`);
+    console.log(`   ${pc2.bold("State File:")}    ${pc2.dim(binPath)}`);
+    console.log(`   ${pc2.bold("Live Updates:")}  ${pc2.magenta("Active (SSE)")}
 `);
     if (shouldOpen) {
       open(url).catch(() => {
@@ -277,7 +430,7 @@ ${pc.bold(pc.green("\u{1F680} what-is-it web viewer running!"))}`);
 }
 
 // src/cli/caveman.ts
-import pc2 from "picocolors";
+import pc3 from "picocolors";
 function formatCavemanStatus(data) {
   const { meta, features, tasks } = data;
   const total = tasks.length;
@@ -285,96 +438,135 @@ function formatCavemanStatus(data) {
   const inProgress = tasks.filter((t) => t.status === "in_progress");
   const todo = tasks.filter((t) => t.status === "todo");
   const lines = [];
-  lines.push(`${pc2.bold(pc2.yellow("UGG."))} PROJECT: ${pc2.cyan(meta.name)} [${pc2.green(`${meta.overallProgress}%`)} DONE] TYPE: ${meta.projectType}`);
-  lines.push(`TASKS: ${pc2.green(`${done}`)} DONE / ${pc2.yellow(`${inProgress.length}`)} ACTIVE / ${pc2.white(`${todo.length}`)} TODO (TOTAL: ${total})`);
+  lines.push(`${pc3.bold(pc3.yellow("UGG."))} PROJECT: ${pc3.cyan(meta.name)} [${pc3.green(`${meta.overallProgress}%`)} DONE] TYPE: ${meta.projectType}`);
+  lines.push(`TASKS: ${pc3.green(`${done}`)} DONE / ${pc3.yellow(`${inProgress.length}`)} ACTIVE / ${pc3.white(`${todo.length}`)} TODO (TOTAL: ${total})`);
   lines.push("");
-  lines.push(pc2.bold("FEATURES:"));
+  lines.push(pc3.bold("FEATURES:"));
   for (const f of features) {
     const fTasks = tasks.filter((t) => t.featureId === f.id);
     const fDone = fTasks.filter((t) => t.status === "done").length;
-    const statColor = f.status === "completed" ? pc2.green : f.status === "in_progress" ? pc2.yellow : pc2.dim;
-    lines.push(`- [${statColor(`${f.progress}%`)}] ${pc2.bold(f.title)} (${fDone}/${fTasks.length} tasks)`);
+    const statColor = f.status === "completed" ? pc3.green : f.status === "in_progress" ? pc3.yellow : pc3.dim;
+    lines.push(`- [${statColor(`${f.progress}%`)}] ${pc3.bold(f.title)} (${fDone}/${fTasks.length} tasks)`);
   }
   if (inProgress.length > 0) {
     lines.push("");
-    lines.push(pc2.bold(pc2.yellow("CURRENT FOCUS (DO NOW):")));
+    lines.push(pc3.bold(pc3.yellow("CURRENT FOCUS (DO NOW):")));
     for (const t of inProgress) {
-      lines.push(`* [${pc2.cyan(t.id)}] "${pc2.bold(t.title)}"`);
+      lines.push(`* [${pc3.cyan(t.id)}] "${pc3.bold(t.title)}"`);
       lines.push(`  WHY:   ${t.why}`);
-      lines.push(`  WHERE: ${pc2.underline(t.where)}`);
+      lines.push(`  WHERE: ${pc3.underline(t.where)}`);
       lines.push(`  HOW:   ${t.how}`);
       lines.push(`  WHEN:  ${t.when}`);
     }
   } else if (todo.length > 0) {
     const nextTask = todo[0];
     lines.push("");
-    lines.push(pc2.bold("NEXT QUEUED TASK:"));
-    lines.push(`* [${pc2.cyan(nextTask.id)}] "${pc2.bold(nextTask.title)}"`);
+    lines.push(pc3.bold("NEXT QUEUED TASK:"));
+    lines.push(`* [${pc3.cyan(nextTask.id)}] "${pc3.bold(nextTask.title)}"`);
     lines.push(`  WHY:   ${nextTask.why}`);
-    lines.push(`  WHERE: ${pc2.underline(nextTask.where)}`);
+    lines.push(`  WHERE: ${pc3.underline(nextTask.where)}`);
     lines.push(`  HOW:   ${nextTask.how}`);
   }
   lines.push("");
-  lines.push(`${pc2.dim("AGENT COMMANDS:")}`);
-  lines.push(`- Mark done: ${pc2.cyan("npx what-is-it task done <id>")}`);
-  lines.push(`- Add task:  ${pc2.cyan('npx what-is-it task add --title "..." --why "..." --where "..."')}`);
-  lines.push(`- Open UI:   ${pc2.cyan("npx what-is-it")}`);
+  lines.push(`${pc3.dim("AGENT COMMANDS:")}`);
+  lines.push(`- Mark done: ${pc3.cyan("npx what-is-it task done <id>")}`);
+  lines.push(`- Add task:  ${pc3.cyan('npx what-is-it task add --title "..." --why "..." --where "..."')}`);
+  lines.push(`- Open UI:   ${pc3.cyan("npx what-is-it")}`);
   return lines.join("\n");
 }
 function formatCavemanSuccess(action, id, detail) {
-  let msg = `${pc2.bold(pc2.yellow("UGG."))} ${pc2.green(action.toUpperCase())}`;
-  if (id) msg += ` [${pc2.cyan(id)}]`;
+  let msg = `${pc3.bold(pc3.yellow("UGG."))} ${pc3.green(action.toUpperCase())}`;
+  if (id) msg += ` [${pc3.cyan(id)}]`;
   if (detail) msg += ` - ${detail}`;
   return msg;
 }
 function formatCavemanError(err) {
-  return `${pc2.bold(pc2.red("GRR."))} ERROR: ${err}. RUN ${pc2.cyan("npx what-is-it status")} TO CHECK.`;
+  return `${pc3.bold(pc3.red("GRR."))} ERROR: ${err}. RUN ${pc3.cyan("npx what-is-it status")} TO CHECK.`;
 }
 
 // src/cli/index.ts
 var program = new Command();
 program.name("what-is-it").description("Live Project Memory, Task Tracker & Interactive Wiki for Vibe Coding").version("1.0.0");
+function askQuestion(query) {
+  if (!process.stdin.isTTY) return Promise.resolve("");
+  const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+  return new Promise((resolve) => {
+    rl.question(query, (answer) => {
+      rl.close();
+      resolve(answer.trim().toLowerCase());
+    });
+  });
+}
 program.command("ui", { isDefault: true }).description("Launch the live interactive web viewer").option("-p, --port <number>", "Port to listen on", "3456").option("--no-open", "Do not open browser automatically").action((options) => {
   const cwd = process.cwd();
   if (!projectExists(cwd)) {
-    console.log(pc3.yellow(`No ${DEFAULT_FILE_NAME} found in current directory.`));
+    console.log(pc4.yellow(`No ${DEFAULT_FILE_NAME} found in current directory.`));
     console.log(`Running auto-mapping initialization first...
 `);
-    runInit(cwd, false);
+    runInit(cwd, { force: false, open: options.open });
+    return;
   }
   const port = parseInt(options.port, 10) || 3456;
   startServer(cwd, port, options.open !== false);
 });
-program.command("init").description("Map the existing codebase, create .what-is-it.bin, and install agent skills").option("-f, --force", "Overwrite existing state if already initialized").action((options) => {
-  runInit(process.cwd(), options.force);
+program.command("init").description("Map the existing codebase, create .what-is-it.bin, and install agent skills").option("-f, --force", "Overwrite existing state if already initialized").option("-g, --global", "Install agent skill globally for all projects").option("--no-global", "Do not install skill globally").action((options) => {
+  runInit(process.cwd(), options);
 });
-function runInit(cwd, force) {
-  if (projectExists(cwd) && !force) {
-    console.log(pc3.yellow(`\u26A0\uFE0F ${DEFAULT_FILE_NAME} already exists in ${cwd}.`));
-    console.log(`Use ${pc3.cyan("--force")} to overwrite, or run ${pc3.cyan("npx what-is-it")} to open viewer.`);
+async function runInit(cwd, options = {}) {
+  if (projectExists(cwd) && !options.force) {
+    console.log(pc4.yellow(`\u26A0\uFE0F ${DEFAULT_FILE_NAME} already exists in ${cwd}.`));
+    console.log(`Use ${pc4.cyan("--force")} to overwrite, or run ${pc4.cyan("npx what-is-it")} to open viewer.`);
     return;
   }
-  console.log(pc3.bold(pc3.cyan("\u{1F50D} Mapping project codebase & architecture...")));
+  console.log(pc4.bold(pc4.cyan("\n\u{1F50D} Mapping project codebase & architecture...")));
   const scanContext = scanProject(cwd);
-  console.log(`- Project Name: ${pc3.bold(scanContext.projectName)}`);
-  console.log(`- Project Type: ${pc3.bold(scanContext.projectType)}`);
+  console.log(`- Project Name: ${pc4.bold(scanContext.projectName)}`);
+  console.log(`- Project Type: ${pc4.bold(scanContext.projectType)}`);
   console.log(`- Frameworks:   ${scanContext.frameworks.join(", ") || "Custom"}`);
   console.log(`- Discovered:   ${scanContext.files.length} files, ${scanContext.routes.length} routes, ${scanContext.components.length} components`);
   const projectData = synthesizeProjectData(scanContext);
   const { binPath, mdPath } = saveProjectData(cwd, projectData);
-  console.log(pc3.green(`
-\u2714 Saved compressed binary: ${binPath} (${fs3.statSync(binPath).size} bytes)`));
+  console.log(pc4.green(`\u2714 Saved compressed binary: ${binPath} (${fs3.statSync(binPath).size} bytes)`));
   if (mdPath) {
-    console.log(pc3.green(`\u2714 Generated markdown overview: ${mdPath}`));
+    console.log(pc4.green(`\u2714 Generated markdown overview: ${mdPath}`));
   }
-  const { skillPath, rulesUpdated } = installSkills(cwd);
-  console.log(pc3.green(`\u2714 Installed agent skill: ${skillPath}`));
+  const { skillPath, rulesUpdated, slashCommands } = installSkills({
+    rootDir: cwd,
+    meta: projectData.meta
+  });
+  console.log(pc4.green(`\u2714 Installed project-specific skill: ${skillPath}`));
+  console.log(pc4.green(`\u2714 Installed native slash commands: ${slashCommands.join(", ")}`));
   if (rulesUpdated.length > 0) {
-    console.log(pc3.green(`\u2714 Updated agent guidelines: ${rulesUpdated.join(", ")}`));
+    console.log(pc4.green(`\u2714 Updated multi-agent rules: ${rulesUpdated.join(", ")}`));
   }
-  console.log("\n" + formatCavemanSuccess("PROJECT INITIALIZED & MAPPED", scanContext.projectName));
-  console.log(`${pc3.dim("Run")} ${pc3.cyan("npx what-is-it")} ${pc3.dim("to launch interactive browser dashboard.")}
+  let shouldInstallGlobal = options.global === true;
+  if (!shouldInstallGlobal && options.global !== false && process.stdin.isTTY) {
+    const answer = await askQuestion(`
+${pc4.cyan("?")} Install what-is-it skill globally for all projects on this machine? (Y/n) `);
+    if (answer === "" || answer === "y" || answer === "yes") {
+      shouldInstallGlobal = true;
+    }
+  }
+  if (shouldInstallGlobal) {
+    const { globalSkillPath, success } = installGlobalSkill();
+    if (success) {
+      console.log(pc4.green(`\u2714 Installed global agent skill: ${globalSkillPath}`));
+    }
+  }
+  console.log("\n" + pc4.bold(pc4.cyan("\u2550".repeat(68))));
+  console.log(pc4.bold(pc4.green("  \u{1F389} what-is-it project memory initialized successfully!")));
+  console.log(pc4.bold(pc4.cyan("\u2550".repeat(68))));
+  console.log(`
+${pc4.bold(pc4.yellow("\u{1F449} NEXT STEP (DELEGATE TO YOUR AI AGENT):"))}`);
+  console.log(`   Open your AI Agent chat (Antigravity, Cursor, Claude Code) and type:`);
+  console.log(`   ${pc4.bold(pc4.magenta("/what-is-it-init"))}`);
+  console.log(`   ${pc4.dim("-> Your agent will analyze the codebase and formulate deep domain tasks & user flows.")}
 `);
+  console.log(`   ${pc4.bold(pc4.cyan("/status"))}        - Check active tasks and progress anytime`);
+  console.log(`   ${pc4.bold(pc4.cyan("/task-done"))}     - Mark tasks done as you code`);
+  console.log(`   ${pc4.bold(pc4.cyan("npx what-is-it"))} - Open the live web viewer in your browser
+`);
+  console.log(pc4.bold(pc4.cyan("\u2550".repeat(68))) + "\n");
 }
 program.command("status").description("Print concise caveman-style project status and active tasks for agents").action(() => {
   const cwd = process.cwd();
@@ -384,6 +576,29 @@ program.command("status").description("Print concise caveman-style project statu
     process.exit(1);
   }
   console.log(formatCavemanStatus(data));
+});
+program.command("schema").description("Print the complete JSON schema for what-is-it project state (ideal for AI agents)").action(() => {
+  console.log(JSON.stringify(getProjectJsonSchema(), null, 2));
+});
+program.command("install-skill").description("Install agent skills, rules, and slash commands").option("-g, --global", "Install globally into user config directory").action((options) => {
+  const cwd = process.cwd();
+  if (options.global) {
+    const { globalSkillPath, success } = installGlobalSkill();
+    if (success) {
+      console.log(pc4.green(`\u2714 Installed global agent skill: ${globalSkillPath}`));
+    }
+  } else {
+    const data = loadProjectData(cwd);
+    const { skillPath, rulesUpdated, slashCommands } = installSkills({
+      rootDir: cwd,
+      meta: data?.meta
+    });
+    console.log(pc4.green(`\u2714 Installed project-specific skill: ${skillPath}`));
+    console.log(pc4.green(`\u2714 Installed slash commands: ${slashCommands.join(", ")}`));
+    if (rulesUpdated.length > 0) {
+      console.log(pc4.green(`\u2714 Updated rules: ${rulesUpdated.join(", ")}`));
+    }
+  }
 });
 var taskCmd = program.command("task").description("Manage project tasks");
 taskCmd.command("add").description("Add a new task to the project").requiredOption("--title <string>", "Task title").option("--feature <string>", "Feature ID (defaults to first feature)").option("--why <string>", "Rationale / problem solved", "Improve codebase and user experience").option("--how <string>", "Technical approach / implementation details", "Implement required code and tests").option("--where <string>", "Files or routes touched", "src/").option("--when <string>", "Milestone / phase", "Current Sprint").option("--priority <priority>", "Priority (low, medium, high, urgent)", "medium").option("--role <role>", "Actor role", "Developer").action((options) => {
@@ -428,7 +643,7 @@ taskCmd.command("done <taskId>").description("Mark a task as completed").action(
   task.completedAt = (/* @__PURE__ */ new Date()).toISOString();
   saveProjectData(cwd, data);
   console.log(formatCavemanSuccess("TASK COMPLETED", task.id, `"${task.title}"`));
-  console.log(`${pc3.dim("Progress now:")} ${pc3.green(`${data.meta.overallProgress}%`)}`);
+  console.log(`${pc4.dim("Progress now:")} ${pc4.green(`${data.meta.overallProgress}%`)}`);
 });
 taskCmd.command("list").description("List all tasks").option("--status <status>", "Filter by status (todo, in_progress, done)").action((options) => {
   const cwd = process.cwd();
@@ -441,12 +656,12 @@ taskCmd.command("list").description("List all tasks").option("--status <status>"
   if (options.status) {
     filtered = filtered.filter((t) => t.status === options.status);
   }
-  console.log(pc3.bold(`
+  console.log(pc4.bold(`
 TASKS (${filtered.length} total):`));
   for (const t of filtered) {
-    const icon = t.status === "done" ? pc3.green("\u2714") : t.status === "in_progress" ? pc3.yellow("\u26A1") : pc3.dim("\u25CB");
-    console.log(`${icon} [${pc3.cyan(t.id)}] ${pc3.bold(t.title)} (${t.status})`);
-    console.log(`    WHERE: ${pc3.underline(t.where)} | WHY: ${t.why}`);
+    const icon = t.status === "done" ? pc4.green("\u2714") : t.status === "in_progress" ? pc4.yellow("\u26A1") : pc4.dim("\u25CB");
+    console.log(`${icon} [${pc4.cyan(t.id)}] ${pc4.bold(t.title)} (${t.status})`);
+    console.log(`    WHERE: ${pc4.underline(t.where)} | WHY: ${t.why}`);
   }
   console.log("");
 });

@@ -1,12 +1,12 @@
 {
-  "name": "what-is-it",
+  "name": "@shakthizen/what-is-it",
   "version": "1.0.0",
   "description": "Live Project Memory & Interactive Wiki for Vibe Coding",
   "main": "./dist/core/index.js",
   "types": "./dist/core/index.d.ts",
   "type": "module",
   "bin": {
-    "what-is-it": "./bin/what-is-it.js"
+    "what-is-it": "bin/what-is-it.js"
   },
   "files": [
     "bin",

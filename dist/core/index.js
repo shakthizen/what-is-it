@@ -3,18 +3,20 @@ import {
   DEFAULT_MARKDOWN_NAME,
   computeProgress,
   generateMarkdownOverview,
+  getProjectJsonSchema,
   loadProjectData,
   projectExists,
   renderProgressBar,
   saveProjectData,
   scanProject,
   synthesizeProjectData
-} from "../chunk-WBSBVVC6.js";
+} from "../chunk-AGAEX34J.js";
 export {
   DEFAULT_FILE_NAME,
   DEFAULT_MARKDOWN_NAME,
   computeProgress,
   generateMarkdownOverview,
+  getProjectJsonSchema,
   loadProjectData,
   projectExists,
   renderProgressBar,
