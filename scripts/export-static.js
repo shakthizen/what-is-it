@@ -21,7 +21,10 @@ if (!fs.existsSync(distWebDir)) {
 // 1. Write data.json into dist/web
 fs.writeFileSync(path.join(distWebDir, 'data.json'), JSON.stringify(data, null, 2), 'utf-8');
 
-// 2. Also copy dist/web to docs/ for zero-config GitHub Pages hosting from docs folder!
+// 2. Clean and copy dist/web to docs/ for zero-config GitHub Pages hosting from docs folder!
+if (fs.existsSync(docsDir)) {
+  fs.rmSync(docsDir, { recursive: true, force: true });
+}
 fs.cpSync(distWebDir, docsDir, { recursive: true });
 
 // 3. Create .nojekyll in docs/ so GitHub Pages doesn't ignore _assets or dotfiles

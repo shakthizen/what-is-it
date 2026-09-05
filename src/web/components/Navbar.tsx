@@ -1,7 +1,7 @@
 import React from 'react';
 import type { ProjectMeta } from '../types.js';
 
-export type TabType = 'tasks' | 'wiki' | 'flows';
+export type TabType = 'landing' | 'tasks' | 'wiki' | 'flows';
 
 interface NavbarProps {
   meta: ProjectMeta;
@@ -22,7 +22,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     <header className="sticky top-0 z-40 bg-[#090d16]/90 backdrop-blur-md border-b border-slate-800/80 px-6 py-3 flex items-center justify-between">
       {/* Left: Brand & Project Name */}
       <div className="flex items-center gap-4">
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2.5 cursor-pointer" onClick={() => setActiveTab('landing')}>
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 via-indigo-600 to-purple-600 flex items-center justify-center text-white font-extrabold text-sm shadow-md shadow-indigo-500/20">
             W
           </div>
@@ -63,39 +63,54 @@ export const Navbar: React.FC<NavbarProps> = ({
       {/* Center: Navigation Tabs */}
       <nav className="flex items-center bg-[#0f172a] p-1 rounded-xl border border-slate-800">
         <button
+          onClick={() => setActiveTab('landing')}
+          className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+            activeTab === 'landing'
+              ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
+              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-850'
+          }`}
+        >
+          <span>🚀</span>
+          <span>Overview</span>
+        </button>
+
+        <button
           onClick={() => setActiveTab('tasks')}
-          className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+          className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
             activeTab === 'tasks'
               ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
               : 'text-slate-400 hover:text-slate-200 hover:bg-slate-850'
           }`}
         >
           <span>📊</span>
-          <span>Tasks & Progress</span>
+          <span className="hidden sm:inline">Tasks & Progress</span>
+          <span className="sm:hidden">Tasks</span>
         </button>
 
         <button
           onClick={() => setActiveTab('wiki')}
-          className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+          className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
             activeTab === 'wiki'
               ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
               : 'text-slate-400 hover:text-slate-200 hover:bg-slate-850'
           }`}
         >
           <span>📖</span>
-          <span>Wiki Docs</span>
+          <span className="hidden sm:inline">Wiki Docs</span>
+          <span className="sm:hidden">Wiki</span>
         </button>
 
         <button
           onClick={() => setActiveTab('flows')}
-          className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+          className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
             activeTab === 'flows'
               ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
               : 'text-slate-400 hover:text-slate-200 hover:bg-slate-850'
           }`}
         >
           <span>🕸️</span>
-          <span>Visual Graph & UI</span>
+          <span className="hidden sm:inline">Visual Graph</span>
+          <span className="sm:hidden">Graph</span>
         </button>
       </nav>
 

@@ -4,14 +4,53 @@ import { Navbar, TabType } from './components/Navbar.js';
 import { ProgressDashboard } from './components/ProgressDashboard.js';
 import { WikiView } from './components/WikiView.js';
 import { UserFlowGraph } from './components/UserFlowGraph.js';
+import { LandingPage } from './components/LandingPage.js';
 
 export const App: React.FC = () => {
+  const getInitialTab = (): TabType => {
+    try {
+      const hash = window.location.hash.replace('#', '') as TabType;
+      if (['landing', 'tasks', 'wiki', 'flows'].includes(hash)) {
+        return hash;
+      }
+      if (typeof window !== 'undefined' && (
+        window.location.hostname.includes('github.io') ||
+        window.location.protocol === 'file:'
+      )) {
+        return 'landing';
+      }
+    } catch {
+      // ignore
+    }
+    return 'tasks';
+  };
+
   const [data, setData] = useState<ProjectData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<TabType>('tasks');
+  const [activeTab, setActiveTabState] = useState<TabType>(getInitialTab);
   const [isConnected, setIsConnected] = useState<boolean>(false);
   const [isStaticMode, setIsStaticMode] = useState<boolean>(false);
+
+  const setActiveTab = (tab: TabType) => {
+    setActiveTabState(tab);
+    try {
+      window.location.hash = tab;
+    } catch {
+      // ignore
+    }
+  };
+
+  useEffect(() => {
+    const onHashChange = () => {
+      const hash = window.location.hash.replace('#', '') as TabType;
+      if (['landing', 'tasks', 'wiki', 'flows'].includes(hash)) {
+        setActiveTabState(hash);
+      }
+    };
+    window.addEventListener('hashchange', onHashChange);
+    return () => window.removeEventListener('hashchange', onHashChange);
+  }, []);
 
   const applyLocalOverrides = (projectData: ProjectData): ProjectData => {
     try {
@@ -226,6 +265,13 @@ export const App: React.FC = () => {
 
       {/* Main Content Pane */}
       <main className="flex-1">
+        {activeTab === 'landing' && (
+          <LandingPage
+            data={data}
+            onToggleTask={handleToggleTask}
+            onLaunchFullApp={() => setActiveTab('tasks')}
+          />
+        )}
         {activeTab === 'tasks' && (
           <ProgressDashboard data={data} onToggleTask={handleToggleTask} />
         )}

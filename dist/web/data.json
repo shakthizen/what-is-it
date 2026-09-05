@@ -12,7 +12,7 @@
     ],
     "architectureSummary": "what-is-it is a cli project built with React, Vite, Tailwind CSS, CLI. It contains 31 tracked files across 0 routes, 10 components, and 0 services/APIs.",
     "version": "1.0.0",
-    "updatedAt": "2026-09-05T19:01:56.549Z",
+    "updatedAt": "2026-09-05T19:16:38.820Z",
     "overallProgress": 100
   },
   "features": [
@@ -123,6 +123,20 @@
       "when": "Sprint 2",
       "createdAt": "2026-09-05T18:04:31.693Z",
       "completedAt": "2026-09-05T18:04:53.063Z"
+    },
+    {
+      "id": "task-6-eun1",
+      "featureId": "feat-2",
+      "title": "Build product landing page with embedded interactive demo UI",
+      "status": "done",
+      "priority": "medium",
+      "actorRole": "Developer",
+      "why": "Provide rich visual onboarding and live interactive preview for users and agents visiting GitHub Pages",
+      "how": "Embed reactive ProgressDashboard, WikiView, and UserFlowGraph inside a mock window container with seamless tab navigation",
+      "where": "src/web/components/LandingPage.tsx,src/web/App.tsx,src/web/components/Navbar.tsx",
+      "when": "GitHub Pages Release",
+      "createdAt": "2026-09-05T19:15:53.519Z",
+      "completedAt": "2026-09-05T19:16:11.773Z"
     }
   ],
   "wiki": [
