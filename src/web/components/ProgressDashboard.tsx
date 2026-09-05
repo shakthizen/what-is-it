@@ -3,10 +3,10 @@ import type { ProjectData, Task, TaskStatus } from '../types.js';
 
 interface Props {
   data: ProjectData;
-  onToggleTask: (taskId: string) => void;
+  onToggleTask?: (taskId: string) => void;
 }
 
-export const ProgressDashboard: React.FC<Props> = ({ data, onToggleTask }) => {
+export const ProgressDashboard: React.FC<Props> = ({ data }) => {
   const { meta, features, tasks } = data;
   const [selectedFeature, setSelectedFeature] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
@@ -35,12 +35,12 @@ export const ProgressDashboard: React.FC<Props> = ({ data, onToggleTask }) => {
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-8 space-y-8">
-      {/* Top Banner & Dynamic Progress Bar */}
-      <div className="bg-gradient-to-b from-[#131b2e] to-[#0f172a] border border-slate-800 rounded-2xl p-6 shadow-xl relative overflow-hidden">
+      {/* Top Banner & Progress Bar */}
+      <div className="bg-[#0d131f] border border-slate-800 rounded-2xl p-6 relative overflow-hidden">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div className="space-y-2 max-w-2xl">
             <div className="flex items-center gap-2">
-              <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+              <span className="px-2.5 py-0.5 rounded text-xs font-mono font-medium bg-indigo-950 text-indigo-300 border border-indigo-800">
                 Live Memory
               </span>
               <span className="text-slate-400 text-xs font-mono">
@@ -76,10 +76,10 @@ export const ProgressDashboard: React.FC<Props> = ({ data, onToggleTask }) => {
               </span>
             </div>
 
-            {/* Main Dynamic Bar */}
-            <div className="w-full h-3 bg-slate-800 rounded-full overflow-hidden p-0.5 border border-slate-700/80">
+            {/* Main Progress Bar */}
+            <div className="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden p-0.5 border border-slate-700/80">
               <div
-                className="h-full bg-gradient-to-r from-indigo-500 via-indigo-400 to-emerald-400 rounded-full transition-all duration-700 shadow-sm"
+                className="h-full bg-emerald-500 rounded-full transition-all duration-700"
                 style={{ width: `${meta.overallProgress}%` }}
               />
             </div>
@@ -183,9 +183,9 @@ export const ProgressDashboard: React.FC<Props> = ({ data, onToggleTask }) => {
                     </div>
                     <div className="text-[10px] text-slate-500 font-mono">{feature.progress}% completed</div>
                   </div>
-                  <div className="w-20 h-2 bg-slate-800 rounded-full overflow-hidden border border-slate-700">
+                  <div className="w-20 h-1.5 bg-slate-800 rounded-full overflow-hidden border border-slate-700">
                     <div
-                      className="h-full bg-gradient-to-r from-indigo-500 to-emerald-400 rounded-full transition-all"
+                      className="h-full bg-emerald-500 rounded-full transition-all"
                       style={{ width: `${feature.progress}%` }}
                     />
                   </div>
@@ -206,33 +206,34 @@ export const ProgressDashboard: React.FC<Props> = ({ data, onToggleTask }) => {
                     return (
                       <div
                         key={task.id}
-                        className={`group relative rounded-xl border p-4 transition-all duration-200 ${
+                        className={`group relative rounded-xl border p-4 transition-colors ${
                           isDone
-                            ? 'bg-[#090d16]/60 border-slate-800/60 opacity-80 hover:opacity-100'
+                            ? 'bg-[#090d16]/80 border-slate-800/80 opacity-85'
                             : isInProgress
-                            ? 'bg-gradient-to-r from-[#131b2e] to-[#0f172a] border-amber-500/40 shadow-md shadow-amber-500/5'
-                            : 'bg-[#131b2e]/70 border-slate-800 hover:border-slate-700'
+                            ? 'bg-[#0d131f] border-amber-500/40'
+                            : 'bg-[#0d131f] border-slate-800'
                         }`}
                       >
                         <div className="flex items-start gap-3">
-                          {/* Interactive Completion Toggle Checkbox */}
-                          <button
-                            onClick={() => onToggleTask(task.id)}
-                            title={isDone ? 'Mark as todo' : 'Mark as completed'}
-                            className={`w-5 h-5 rounded-md border flex items-center justify-center transition-all mt-0.5 shrink-0 ${
+                          {/* AI-Managed Read-Only Status Glyph */}
+                          <div
+                            title={isDone ? 'Completed by AI Agent' : isInProgress ? 'In Progress by AI Agent' : 'Pending AI Task'}
+                            className={`w-5 h-5 rounded border flex items-center justify-center font-mono font-bold text-xs mt-0.5 shrink-0 select-none ${
                               isDone
-                                ? 'bg-emerald-500 border-emerald-400 text-black font-black text-xs'
-                                : 'bg-[#090d16] border-slate-600 hover:border-indigo-400'
+                                ? 'bg-emerald-950 border-emerald-600/60 text-emerald-400'
+                                : isInProgress
+                                ? 'bg-amber-950 border-amber-600/60 text-amber-400'
+                                : 'bg-[#090d16] border-slate-700 text-transparent'
                             }`}
                           >
-                            {isDone && '✓'}
-                          </button>
+                            {isDone ? '✓' : isInProgress ? '•' : ''}
+                          </div>
 
                           {/* Task Body */}
                           <div className="flex-1 space-y-2.5">
                             <div className="flex flex-wrap items-center justify-between gap-2">
                               <div className="flex items-center gap-2">
-                                <span className="font-mono text-[11px] text-slate-400 bg-slate-800/80 px-1.5 py-0.5 rounded border border-slate-700">
+                                <span className="font-mono text-[11px] text-slate-400 bg-slate-800 px-1.5 py-0.5 rounded border border-slate-700">
                                   {task.id}
                                 </span>
                                 <h3
@@ -246,16 +247,16 @@ export const ProgressDashboard: React.FC<Props> = ({ data, onToggleTask }) => {
 
                               <div className="flex items-center gap-1.5">
                                 {task.actorRole && (
-                                  <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-800 text-slate-300">
+                                  <span className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-slate-800 text-slate-300">
                                     👤 {task.actorRole}
                                   </span>
                                 )}
                                 <span
-                                  className={`px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider ${
+                                  className={`px-2 py-0.5 rounded text-[10px] font-mono font-semibold uppercase tracking-wider ${
                                     isDone
-                                      ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                                      ? 'bg-emerald-950 text-emerald-400 border border-emerald-800'
                                       : isInProgress
-                                      ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30 animate-pulse'
+                                      ? 'bg-amber-950 text-amber-400 border border-amber-800'
                                       : 'bg-slate-800 text-slate-400 border border-slate-700'
                                   }`}
                                 >

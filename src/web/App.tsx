@@ -252,9 +252,24 @@ export const App: React.FC = () => {
     );
   }
 
+  const isDocsHash = typeof window !== 'undefined' && window.location.hash.startsWith('#docs');
+  const isLandingMode = (isStaticMode || (typeof window !== 'undefined' && window.location.hostname.includes('github.io'))) && !isDocsHash;
+
+  if (isLandingMode) {
+    return (
+      <LandingPage
+        data={data}
+        onOpenDocs={() => {
+          window.location.hash = '#docs';
+          setActiveTab('tasks');
+        }}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#090d16] text-slate-100 flex flex-col antialiased">
-      {/* Top Navigation */}
+      {/* Top Generated Docs Navigation */}
       <Navbar
         meta={data.meta}
         activeTab={activeTab}
@@ -265,15 +280,8 @@ export const App: React.FC = () => {
 
       {/* Main Content Pane */}
       <main className="flex-1">
-        {activeTab === 'landing' && (
-          <LandingPage
-            data={data}
-            onToggleTask={handleToggleTask}
-            onLaunchFullApp={() => setActiveTab('tasks')}
-          />
-        )}
         {activeTab === 'tasks' && (
-          <ProgressDashboard data={data} onToggleTask={handleToggleTask} />
+          <ProgressDashboard data={data} />
         )}
         {activeTab === 'wiki' && (
           <WikiView wiki={data.wiki} />
