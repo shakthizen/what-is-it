@@ -35,7 +35,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ data, onOpenDocs }) =>
           <div className="flex items-center gap-2">
             <span className="font-bold text-white tracking-tight text-sm">what-is-it</span>
             <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">
-              v1.0.0
+              v1.0.1
             </span>
           </div>
         </div>
@@ -245,7 +245,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ data, onOpenDocs }) =>
               </div>
               <h3 className="text-base font-bold text-white">Terminal Scaffold (Hands)</h3>
               <p className="text-xs text-slate-400 leading-relaxed">
-                Run <code className="text-slate-200 font-mono">npx what-is-it init</code>. It creates the compressed binary <code className="text-slate-200 font-mono">.what-is-it.bin</code> (&lt; 4 KB), generates <code className="text-slate-200 font-mono">WHAT_IS_IT.md</code>, and configures native slash commands across all agent IDEs.
+                Run <code className="text-slate-200 font-mono">npx @shakthizen/what-is-it init</code>. It creates the compressed binary <code className="text-slate-200 font-mono">.what-is-it.bin</code> (&lt; 4 KB), generates <code className="text-slate-200 font-mono">WHAT_IS_IT.md</code>, and configures native slash commands across all agent IDEs.
               </p>
             </div>
 

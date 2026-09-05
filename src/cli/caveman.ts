@@ -44,9 +44,9 @@ export function formatCavemanStatus(data: ProjectData): string {
 
   lines.push('');
   lines.push(`${pc.dim('AGENT COMMANDS:')}`);
-  lines.push(`- Mark done: ${pc.cyan('npx what-is-it task done <id>')}`);
-  lines.push(`- Add task:  ${pc.cyan('npx what-is-it task add --title "..." --why "..." --where "..."')}`);
-  lines.push(`- Open UI:   ${pc.cyan('npx what-is-it')}`);
+  lines.push(`- Mark done: ${pc.cyan('npx @shakthizen/what-is-it task done <id>')}`);
+  lines.push(`- Add task:  ${pc.cyan('npx @shakthizen/what-is-it task add --title "..." --why "..." --where "..."')}`);
+  lines.push(`- Open UI:   ${pc.cyan('npx @shakthizen/what-is-it')}`);
 
   return lines.join('\n');
 }
@@ -59,5 +59,5 @@ export function formatCavemanSuccess(action: string, id?: string, detail?: strin
 }
 
 export function formatCavemanError(err: string): string {
-  return `${pc.bold(pc.red('GRR.'))} ERROR: ${err}. RUN ${pc.cyan('npx what-is-it status')} TO CHECK.`;
+  return `${pc.bold(pc.red('GRR.'))} ERROR: ${err}. RUN ${pc.cyan('npx @shakthizen/what-is-it status')} TO CHECK.`;
 }

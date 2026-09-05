@@ -240,7 +240,7 @@ export const App: React.FC = () => {
         </div>
         <h2 className="text-lg font-bold text-white">Project State Unavailable</h2>
         <p className="text-slate-400 text-xs max-w-md">
-          {error || 'No project state could be loaded. Make sure `npx what-is-it init` has been executed.'}
+          {error || 'No project state could be loaded. Make sure `npx @shakthizen/what-is-it init` has been executed.'}
         </p>
         <button
           onClick={fetchProjectData}

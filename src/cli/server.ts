@@ -27,7 +27,7 @@ const MIME_TYPES: Record<string, string> = {
 export function startServer(rootDir: string, port: number = 3456, shouldOpen: boolean = true) {
   const binPath = path.resolve(rootDir, DEFAULT_FILE_NAME);
   if (!fs.existsSync(binPath)) {
-    console.error(pc.red(`Error: ${DEFAULT_FILE_NAME} not found in ${rootDir}. Run 'npx what-is-it init' first.`));
+    console.error(pc.red(`Error: ${DEFAULT_FILE_NAME} not found in ${rootDir}. Run 'npx @shakthizen/what-is-it init' first.`));
     process.exit(1);
   }
 

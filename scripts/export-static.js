@@ -6,7 +6,7 @@ const rootDir = process.cwd();
 const data = loadProjectData(rootDir, DEFAULT_FILE_NAME);
 
 if (!data) {
-  console.error('No .what-is-it.bin found. Run "npx what-is-it init" first.');
+  console.error('No .what-is-it.bin found. Run "npx @shakthizen/what-is-it init" first.');
   process.exit(1);
 }
 

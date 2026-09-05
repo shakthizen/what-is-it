@@ -397,9 +397,14 @@ export function synthesizeProjectData(context: ScanContext): ProjectData {
       bookmarks: [
         { id: 'design-principles', title: 'Design Principles', level: 2 },
         { id: 'color-palette-tokens', title: 'Color Palette Tokens', level: 2 },
-        { id: 'layout-and-breakpoints', title: 'Layout & Breakpoints', level: 2 }
+        { id: 'typography-scale', title: 'Typography Scale', level: 2 },
+        { id: 'spacing-and-layout-grid', title: 'Spacing & Layout Grid', level: 2 },
+        { id: 'component-standards', title: 'Component Standards', level: 2 },
+        { id: 'accessibility-wcag', title: 'Accessibility & WCAG 2.1 AA', level: 2 },
+        { id: 'state-handling-patterns', title: 'State Handling Patterns', level: 2 },
+        { id: 'layout-and-breakpoints', title: 'Responsive Breakpoints', level: 2 }
       ],
-      content: `## Design Principles\n\n1. **Visual Clarity First**: Use crisp vector wireframes, distinct typography scales, and generous whitespace.\n2. **Immediate Feedback**: Micro-interactions, animated state transitions, and clear loading states.\n3. **Actor-Role Empathy**: Customize interfaces specifically for the active user role.\n\n## Color Palette Tokens\n\n| Role / Intent | Hex Token | Visual Representation |\n| :--- | :--- | :--- |\n| **Primary Brand** | \`#6366f1\` (Indigo 500) | 🟣 Primary buttons, active tabs |\n| **Success / Done** | \`#10b981\` (Emerald 500) | 🟢 Completed tasks, status indicators |\n| **In Progress** | \`#f59e0b\` (Amber 500) | 🟡 Active execution, pending review |\n| **Dark Background** | \`#090d16\` (Slate 950) | ⬛ Deep obsidian canvas |\n| **Surface Card** | \`#131b2e\` (Slate 900) | 🪟 Frosted glass card containers |\n\n## Layout & Breakpoints\n\n- **Mobile**: \`< 640px\` — single-column flow, bottom action sheet / bottom tab bar.\n- **Tablet**: \`640px - 1024px\` — flexible grid with collapsible sidebar.\n- **Desktop**: \`> 1024px\` — three-pane view (Navigation + Main Workspace + Bookmarks/Inspector).\n`
+      content: `## Design Principles\n\n1. **Visual Clarity First**: Use crisp vector wireframes, distinct typography scales, and generous whitespace.\n2. **Immediate Feedback**: Micro-interactions, animated state transitions, and clear loading states.\n3. **Actor-Role Empathy**: Customize interfaces specifically for the active user role.\n4. **Resilient State Architecture**: Every interactive surface must account for empty, loading, error, and hydrated states.\n\n## Color Palette Tokens\n\n| Role / Intent | Hex Token | Visual Representation |\n| :--- | :--- | :--- |\n| **Primary Brand** | \`#6366f1\` (Indigo 500) | 🟣 Primary buttons, active tabs, focus rings |\n| **Success / Done** | \`#10b981\` (Emerald 500) | 🟢 Completed tasks, positive status indicators |\n| **In Progress** | \`#f59e0b\` (Amber 500) | 🟡 Active execution, pending review badges |\n| **Danger / Error** | \`#ef4444\` (Rose 500) | 🔴 Error alerts, destructive actions |\n| **Dark Canvas** | \`#090d16\` (Slate 950) | ⬛ Deep obsidian base background |\n| **Surface Card** | \`#131b2e\` (Slate 900) | 🪟 Frosted glass card containers |\n| **Card Border** | \`#1e293b\` (Slate 800) | 📐 Subtle structural dividers |\n| **Text Primary** | \`#f8fafc\` (Slate 50) | ⚪ Headings and primary titles |\n| **Text Muted** | \`#94a3b8\` (Slate 400) | 🔘 Captions, secondary labels, timestamps |\n\n## Typography Scale\n\n- **Display**: \`font-bold 32px / line-height 40px\` — Hero headlines and landing value props.\n- **H1 Heading**: \`font-bold 24px / line-height 32px\` — Page titles and section headers.\n- **H2 Heading**: \`font-semibold 18px / line-height 26px\` — Card titles and group headers.\n- **H3 Heading**: \`font-medium 14px / line-height 20px\` — Subheaders and table column titles.\n- **Body Text**: \`font-normal 14px / line-height 22px\` — Primary content and descriptions.\n- **Caption / Meta**: \`font-normal 12px / line-height 16px\` — Badges, secondary metadata, timestamps.\n- **Monospace Code**: \`font-mono 12px\` — File paths, IDs, tokens, shell commands.\n\n## Spacing & Layout Grid\n\n- **Base Unit**: 4px / 8px scale (\`0.5rem = 8px\`, \`1rem = 16px\`, \`1.5rem = 24px\`, \`2rem = 32px\`).\n- **Container Padding**: Desktop \`p-6\` (24px), Mobile \`p-4\` (16px).\n- **Element Spacing**: Cards \`gap-4\` (16px), dense lists \`gap-2\` (8px).\n- **Max Width**: Application canvas constrained to \`max-w-7xl\` with auto centering.\n\n## Component Standards\n\n- **Buttons**:\n  - Primary: Filled Indigo (\`#6366f1\`), white text, rounded-xl, hover brightness shift.\n  - Secondary: Slate container with subtle border (\`#1e293b\`), text-slate-300.\n  - Destructive: Rose-600 background, confirm prompt dialog.\n- **Form Inputs**:\n  - Dark container (\`#090d16\`), border Slate 800, focus:ring-2 ring-indigo-500, clear placeholder text.\n- **Badges**:\n  - Pill shape, semi-transparent tinted background, 10px bold uppercase font.\n\n## Accessibility & WCAG 2.1 AA\n\n- **Color Contrast**: All text must achieve >= 4.5:1 contrast against its background.\n- **Keyboard Navigation**: All interactive elements (buttons, links, inputs) must have visible focus rings (\`focus-visible:ring-2\`).\n- **ARIA Semantics**: Use proper semantic HTML, \`aria-label\` for icon buttons, and \`role=\"dialog\"\` with focus trapping on modals.\n- **Reduced Motion**: Respect \`prefers-reduced-motion\` for transitions and animations.\n\n## State Handling Patterns\n\n- **Empty State**: Friendly illustration or icon, explanatory heading, and prominent action button to create first item.\n- **Loading State**: Skeleton placeholders preserving layout dimensions (avoid jumping / layout shift).\n- **Error State**: Inline dismissible alert banner with human-readable cause and \"Retry\" button.\n\n## Responsive Breakpoints\n\n- **Mobile (< 640px)**: Single-column vertical flow, bottom navigation bar, touch targets >= 44x44px.\n- **Tablet (640px - 1024px)**: Dual-column flexible grid with collapsible sidebar drawer.\n- **Desktop (> 1024px)**: Full workspace layout with persistent navigation, content canvas, and right-rail inspector.\n`
     },
     {
       id: 'actor-roles-user-journeys',
@@ -441,9 +446,18 @@ export function synthesizeProjectData(context: ScanContext): ProjectData {
         frameType: isMobileProject ? 'mobile' : 'desktop',
         uiGuidelines: {
           layout: isMobileProject ? 'Single-column vertical scroll' : 'Navbar + Hero Section + Feature Grid',
-          colors: ['#6366f1', '#090d16', '#ffffff'],
+          colors: ['#6366f1', '#090d16', '#ffffff', '#10b981'],
           typography: 'Display Bold 32px, Body Regular 14px',
           responsive: 'Fluid container with max-w-6xl',
+          spacing: 'p-6 desktop, p-4 mobile, gap-6 grid',
+          components: ['StickyHeader', 'HeroBanner', 'FeatureCard', 'CTAButton'],
+          accessibility: ['WCAG 2.1 AA compliant', 'Visible focus rings', 'ARIA labels on action buttons'],
+          states: {
+            loading: 'Skeleton hero and card placeholders',
+            empty: 'Minimal landing preview with quickstart CTA',
+            error: 'Inline retry banner if telemetry fails'
+          },
+          interactionRules: ['Smooth scroll navigation', 'Hover elevation on cards', 'Mobile drawer menu toggle'],
           specs: ['Sticky navigation header', 'CTA Button: Get Started', 'Zero cumulative layout shift']
         },
         visualLayout: {
@@ -472,8 +486,18 @@ export function synthesizeProjectData(context: ScanContext): ProjectData {
         frameType: 'modal',
         uiGuidelines: {
           layout: 'Centered modal with backdrop-blur-md',
-          colors: ['#131b2e', '#6366f1', '#10b981'],
-          typography: 'Heading 18px Semi-bold',
+          colors: ['#131b2e', '#6366f1', '#10b981', '#ef4444'],
+          typography: 'Heading 18px Semi-bold, Body 13px',
+          responsive: 'Max width 420px, full-width on mobile',
+          spacing: 'p-6 card padding, space-y-4 form flow',
+          components: ['ModalDialog', 'TextInput', 'SocialButton', 'SubmitButton'],
+          accessibility: ['Focus-trap active', 'Escape key dismiss', 'Screen-reader announced errors'],
+          states: {
+            loading: 'Disabled submit button with animated spinner',
+            error: 'Red border on invalid input with helper message',
+            empty: 'Clean inputs with focused first field'
+          },
+          interactionRules: ['Backdrop click dismisses', 'Enter key submits form', 'Auto-focus email field'],
           specs: ['OAuth 2.0 / Email passwordless', 'Accessible trap-focus', 'Escape key dismiss']
         },
         visualLayout: {
@@ -500,7 +524,17 @@ export function synthesizeProjectData(context: ScanContext): ProjectData {
         uiGuidelines: {
           layout: isMobileProject ? 'Header + Scrollable Cards' : 'Sidebar Navigation + Workspace Canvas',
           colors: ['#090d16', '#131b2e', '#6366f1', '#10b981'],
-          typography: 'Inter / System UI, 14px primary',
+          typography: 'Inter / System UI, 14px primary, 11px mono IDs',
+          responsive: 'Three-pane desktop, collapsible sidebar tablet, bottom tab bar mobile',
+          spacing: 'p-6 main workspace, gap-4 metric grid, gap-3 table rows',
+          components: ['SidebarNav', 'MetricCard', 'DataTable', 'StatusBadge', 'SSEProgressIndicator'],
+          accessibility: ['Table keyboard navigation (arrows/tab)', 'Semantic table headers', 'Contrast ratio >= 4.5:1'],
+          states: {
+            loading: 'Staggered row skeleton animation',
+            empty: 'Zero tasks placeholder with "Add Task" button',
+            error: 'Connection loss banner with SSE auto-reconnect'
+          },
+          interactionRules: ['Live SSE auto-refresh without page reload', 'Row click opens detail drawer', 'Keyboard shortcuts (/ for search)'],
           specs: ['Live SSE progress streaming', 'Filterable data table', 'Keyboard shortcuts']
         },
         visualLayout: {

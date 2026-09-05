@@ -57,11 +57,22 @@ export interface WikiPage {
 
 export type FrameType = 'desktop' | 'mobile' | 'modal' | 'component';
 
+export interface UIStateSpecs {
+  empty?: string;
+  loading?: string;
+  error?: string;
+}
+
 export interface UIGuidelines {
   layout?: string;
   colors?: string[];
   typography?: string;
   responsive?: string;
+  spacing?: string;
+  components?: string[];
+  accessibility?: string[];
+  states?: UIStateSpecs;
+  interactionRules?: string[];
   specs?: string[];
 }
 

@@ -10,7 +10,7 @@ import {
   saveProjectData,
   scanProject,
   synthesizeProjectData
-} from "../chunk-AGAEX34J.js";
+} from "../chunk-D4HK3A54.js";
 export {
   DEFAULT_FILE_NAME,
   DEFAULT_MARKDOWN_NAME,

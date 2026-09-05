@@ -81,17 +81,23 @@ export const Drawer: React.FC<DrawerProps> = ({ node, onClose }) => {
           </div>
         )}
 
-        {/* Layout & Typography */}
-        {(guidelines?.layout || guidelines?.typography || guidelines?.responsive) && (
+        {/* Layout, Spacing & Typography Specs */}
+        {(guidelines?.layout || guidelines?.typography || guidelines?.responsive || guidelines?.spacing) && (
           <div className="space-y-2">
             <h3 className="font-bold text-slate-200 uppercase tracking-wider text-[10px] flex items-center gap-1.5">
-              <span>📐</span> Layout & Typography Specs
+              <span>📐</span> Layout & Spatial Specs
             </h3>
             <div className="bg-[#131b2e] border border-slate-800 rounded-xl p-3 space-y-2.5">
               {guidelines.layout && (
                 <div>
                   <div className="text-[10px] text-slate-400">Layout Pattern</div>
                   <div className="text-slate-200 font-medium mt-0.5">{guidelines.layout}</div>
+                </div>
+              )}
+              {guidelines.spacing && (
+                <div>
+                  <div className="text-[10px] text-slate-400">Spacing & Grid</div>
+                  <div className="text-slate-200 font-mono text-[11px] mt-0.5">{guidelines.spacing}</div>
                 </div>
               )}
               {guidelines.typography && (
@@ -102,11 +108,93 @@ export const Drawer: React.FC<DrawerProps> = ({ node, onClose }) => {
               )}
               {guidelines.responsive && (
                 <div>
-                  <div className="text-[10px] text-slate-400">Responsive Rules</div>
+                  <div className="text-[10px] text-slate-400">Responsive Breakpoint Rules</div>
                   <div className="text-slate-200 mt-0.5">{guidelines.responsive}</div>
                 </div>
               )}
             </div>
+          </div>
+        )}
+
+        {/* Component Standards / Inventory */}
+        {guidelines?.components && guidelines.components.length > 0 && (
+          <div className="space-y-2">
+            <h3 className="font-bold text-slate-200 uppercase tracking-wider text-[10px] flex items-center gap-1.5">
+              <span>🧱</span> Component Standards
+            </h3>
+            <div className="flex flex-wrap gap-1.5">
+              {guidelines.components.map((comp, idx) => (
+                <span
+                  key={idx}
+                  className="px-2.5 py-1 rounded-lg bg-[#131b2e] border border-slate-700/70 text-indigo-300 font-mono text-[11px]"
+                >
+                  &lt;{comp} /&gt;
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Accessibility & WCAG Standards */}
+        {guidelines?.accessibility && guidelines.accessibility.length > 0 && (
+          <div className="space-y-2">
+            <h3 className="font-bold text-slate-200 uppercase tracking-wider text-[10px] flex items-center gap-1.5">
+              <span>♿</span> Accessibility & WCAG 2.1 AA
+            </h3>
+            <ul className="space-y-1.5">
+              {guidelines.accessibility.map((a11y, idx) => (
+                <li key={idx} className="flex items-start gap-2 bg-[#131b2e]/60 border border-slate-800/80 rounded-lg p-2">
+                  <span className="text-sky-400 font-bold">♿</span>
+                  <span className="text-slate-300 leading-relaxed">{a11y}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* UI State Handling (Empty, Loading, Error) */}
+        {guidelines?.states && (guidelines.states.loading || guidelines.states.empty || guidelines.states.error) && (
+          <div className="space-y-2">
+            <h3 className="font-bold text-slate-200 uppercase tracking-wider text-[10px] flex items-center gap-1.5">
+              <span>🔄</span> UI States & Edge Cases
+            </h3>
+            <div className="bg-[#131b2e] border border-slate-800 rounded-xl p-3 space-y-2">
+              {guidelines.states.loading && (
+                <div className="flex items-start gap-2">
+                  <span className="px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-mono text-[9px] uppercase tracking-wider mt-0.5 shrink-0">Loading</span>
+                  <span className="text-slate-300">{guidelines.states.loading}</span>
+                </div>
+              )}
+              {guidelines.states.empty && (
+                <div className="flex items-start gap-2">
+                  <span className="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-mono text-[9px] uppercase tracking-wider mt-0.5 shrink-0">Empty</span>
+                  <span className="text-slate-300">{guidelines.states.empty}</span>
+                </div>
+              )}
+              {guidelines.states.error && (
+                <div className="flex items-start gap-2">
+                  <span className="px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 font-mono text-[9px] uppercase tracking-wider mt-0.5 shrink-0">Error</span>
+                  <span className="text-slate-300">{guidelines.states.error}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Interaction & Motion Guidelines */}
+        {guidelines?.interactionRules && guidelines.interactionRules.length > 0 && (
+          <div className="space-y-2">
+            <h3 className="font-bold text-slate-200 uppercase tracking-wider text-[10px] flex items-center gap-1.5">
+              <span>✨</span> Interaction & Motion Rules
+            </h3>
+            <ul className="space-y-1.5">
+              {guidelines.interactionRules.map((rule, idx) => (
+                <li key={idx} className="flex items-start gap-2 bg-[#131b2e]/60 border border-slate-800/80 rounded-lg p-2">
+                  <span className="text-amber-400 font-bold">⚡</span>
+                  <span className="text-slate-300 leading-relaxed">{rule}</span>
+                </li>
+              ))}
+            </ul>
           </div>
         )}
 

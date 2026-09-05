@@ -27,7 +27,7 @@ const program = new Command();
 program
   .name('what-is-it')
   .description('Live Project Memory, Task Tracker & Interactive Wiki for Vibe Coding')
-  .version('1.0.0');
+  .version('1.0.1');
 
 function askQuestion(query: string): Promise<string> {
   if (!process.stdin.isTTY) return Promise.resolve('');
@@ -72,7 +72,7 @@ program
 async function runInit(cwd: string, options: { force?: boolean; global?: boolean; open?: boolean } = {}) {
   if (projectExists(cwd) && !options.force) {
     console.log(pc.yellow(`⚠️ ${DEFAULT_FILE_NAME} already exists in ${cwd}.`));
-    console.log(`Use ${pc.cyan('--force')} to overwrite, or run ${pc.cyan('npx what-is-it')} to open viewer.`);
+    console.log(`Use ${pc.cyan('--force')} to overwrite, or run ${pc.cyan('npx @shakthizen/what-is-it')} to open viewer.`);
     return;
   }
 
@@ -129,7 +129,7 @@ async function runInit(cwd: string, options: { force?: boolean; global?: boolean
   console.log(`   ${pc.dim('-> Your agent will analyze the codebase and formulate deep domain tasks & user flows.')}\n`);
   console.log(`   ${pc.bold(pc.cyan('/status'))}        - Check active tasks and progress anytime`);
   console.log(`   ${pc.bold(pc.cyan('/task-done'))}     - Mark tasks done as you code`);
-  console.log(`   ${pc.bold(pc.cyan('npx what-is-it'))} - Open the live web viewer in your browser\n`);
+  console.log(`   ${pc.bold(pc.cyan('npx @shakthizen/what-is-it'))} - Open the live web viewer in your browser\n`);
   console.log(pc.bold(pc.cyan('═'.repeat(68))) + '\n');
 }
 
@@ -141,7 +141,7 @@ program
     const cwd = process.cwd();
     const data = loadProjectData(cwd);
     if (!data) {
-      console.error(formatCavemanError(`No ${DEFAULT_FILE_NAME} found. Run 'npx what-is-it init' first.`));
+      console.error(formatCavemanError(`No ${DEFAULT_FILE_NAME} found. Run 'npx @shakthizen/what-is-it init' first.`));
       process.exit(1);
     }
     console.log(formatCavemanStatus(data));

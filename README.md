@@ -19,8 +19,8 @@ When rapidly building with AI agents:
 
 - 🗜️ **Single Compressed Binary (`.what-is-it.bin`)**: Microscopic (< 15 KB), lightning fast, zero bloat. Stores all features, tasks, wiki docs, and React Flow user journeys.
 - 📄 **Simple Markdown Overview (`WHAT_IS_IT.md`)**: Automatically updated on save for clean git diffs and GitHub review.
-- 🦴 **Caveman-Style Agent Communication**: Ultra-dense, telegraphic, token-efficient output designed specifically for LLM context windows (`npx what-is-it status`).
-- 🖥️ **Instant Interactive Web Dashboard (`npx what-is-it`)**:
+- 🦴 **Caveman-Style Agent Communication**: Ultra-dense, telegraphic, token-efficient output designed specifically for LLM context windows (`npx @shakthizen/what-is-it status`).
+- 🖥️ **Instant Interactive Web Dashboard (`npx @shakthizen/what-is-it`)**:
   - **Dynamic Progress Bar**: Live completion % + feature-grouped task boards clearly documenting **Why**, **How**, **Where**, and **When**.
   - **Wiki Documentation**: Sectioned, structured documentation with a sticky right-side bookmarks/TOC navigation that highlights on scroll.
   - **Visual Node Graph (React Flow)**: Interactive graph mapping user flows, actor/role actions (Guest, User, Admin), screen states, and vector **SVG Mockup Frames** (Desktop browser, Mobile chassis, Modal dialog) for visual UI guidelines.
@@ -34,19 +34,19 @@ When rapidly building with AI agents:
 ### 1. Initialize in Any Existing Project
 Run inside your project directory:
 ```bash
-npx what-is-it init
+npx @shakthizen/what-is-it init
 ```
 *`what-is-it` automatically maps your codebase (frameworks, routes, components, git history), creates `.what-is-it.bin`, generates `WHAT_IS_IT.md`, and installs the agent skill.*
 
 ### 2. Launch the Interactive Web Dashboard
 ```bash
-npx what-is-it
+npx @shakthizen/what-is-it
 ```
 *Opens your browser to `http://localhost:3456` with live SSE updates.*
 
 ### 3. Check Live Status (Agent-Friendly Caveman Style)
 ```bash
-npx what-is-it status
+npx @shakthizen/what-is-it status
 ```
 Output:
 ```text
@@ -66,9 +66,9 @@ CURRENT FOCUS (DO NOW):
   WHEN:  Sprint 1 MVP
 
 AGENT COMMANDS:
-- Mark done: npx what-is-it task done <id>
-- Add task:  npx what-is-it task add --title "..." --why "..." --where "..."
-- Open UI:   npx what-is-it
+- Mark done: npx @shakthizen/what-is-it task done <id>
+- Add task:  npx @shakthizen/what-is-it task add --title "..." --why "..." --where "..."
+- Open UI:   npx @shakthizen/what-is-it
 ```
 
 ---
@@ -77,15 +77,15 @@ AGENT COMMANDS:
 
 | Command | Description |
 | :--- | :--- |
-| `what-is-it` / `what-is-it ui` | Launches live interactive browser dashboard (default port: 3456) |
-| `what-is-it init [--force]` | Auto-maps project, creates binary, and installs agent skill |
-| `what-is-it status` | Prints dense caveman-style project status for agents |
-| `what-is-it task done <id>` | Marks task as completed and recalculates progress |
-| `what-is-it task add [opts]` | Adds task with `--why`, `--how`, `--where`, `--when` |
-| `what-is-it task list` | Lists all tasks with status and locations |
-| `what-is-it feature add [opts]`| Creates a new feature category |
-| `what-is-it export [--format]` | Dumps state as JSON or Markdown |
-| `what-is-it import <file>` | Loads JSON data into `.what-is-it.bin` |
+| `npx @shakthizen/what-is-it` | Launches live interactive browser dashboard (default port: 3456) |
+| `npx @shakthizen/what-is-it init [--force]` | Auto-maps project, creates binary, and installs agent skill |
+| `npx @shakthizen/what-is-it status` | Prints dense caveman-style project status for agents |
+| `npx @shakthizen/what-is-it task done <id>` | Marks task as completed and recalculates progress |
+| `npx @shakthizen/what-is-it task add [opts]` | Adds task with `--why`, `--how`, `--where`, `--when` |
+| `npx @shakthizen/what-is-it task list` | Lists all tasks with status and locations |
+| `npx @shakthizen/what-is-it feature add [opts]`| Creates a new feature category |
+| `npx @shakthizen/what-is-it export [--format]` | Dumps state as JSON or Markdown |
+| `npx @shakthizen/what-is-it import <file>` | Loads JSON data into `.what-is-it.bin` |
 
 ---
 

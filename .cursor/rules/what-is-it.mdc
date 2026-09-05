@@ -1,3 +1,7 @@
+---
+description: Live project memory protocol for what-is-it
+globs: *
+---
 <!-- WHAT_IS_IT_START -->
 ## Project Memory Protocol (@shakthizen/what-is-it)
 Ugg. This project tracks live memory, tasks, architecture, and UI flows with `@shakthizen/what-is-it`.

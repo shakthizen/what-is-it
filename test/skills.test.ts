@@ -28,6 +28,8 @@ test('Dynamic Skill Generation embeds exact project-specific paths', () => {
   assert.ok(skill.includes('Flutter, Dart'), 'Skill should include frameworks');
   assert.ok(skill.includes(tmpDir), 'Skill should include absolute path to binary');
   assert.ok(skill.includes('/what-is-it-init'), 'Skill should instruct about /what-is-it-init');
+  assert.ok(skill.includes('@shakthizen/what-is-it'), 'Skill should use scoped package @shakthizen/what-is-it');
+  assert.ok(skill.includes('--why') && skill.includes('--how') && skill.includes('--where') && skill.includes('--when'), 'Skill should specify 4 Ws');
 
   fs.rmSync(tmpDir, { recursive: true, force: true });
 });
@@ -62,11 +64,33 @@ test('Multi-Agent Installation creates slash commands and rules across ecosystem
 
   // Rule files
   assert.ok(fs.existsSync(path.join(tmpDir, 'AGENTS.md')), 'AGENTS.md should exist');
+  const agentsContent = fs.readFileSync(path.join(tmpDir, 'AGENTS.md'), 'utf-8');
+  assert.ok(agentsContent.includes('@shakthizen/what-is-it'), 'AGENTS.md should have @shakthizen/what-is-it');
+  assert.ok(agentsContent.includes('SESSION START / ORIENTATION'), 'AGENTS.md should have orientation guideline');
   assert.ok(fs.existsSync(path.join(tmpDir, 'CLAUDE.md')), 'CLAUDE.md should exist');
   assert.ok(fs.existsSync(path.join(tmpDir, '.cursorrules')), '.cursorrules should exist');
 
   assert.ok(slashCommands.includes('/what-is-it-init'));
   assert.ok(slashCommands.includes('/status'));
+
+  // Test re-install cleanly updates existing AGENTS.md without duplicates
+  const secondInstall = installSkills({
+    rootDir: tmpDir,
+    meta: {
+      name: 'UniversalApp',
+      description: 'Cross-agent test',
+      projectType: 'web',
+      frameworks: ['React'],
+      architectureSummary: '',
+      version: '1.0.0',
+      updatedAt: '',
+      overallProgress: 0
+    }
+  });
+  assert.ok(secondInstall.rulesUpdated.includes('AGENTS.md'), 'Re-install should update AGENTS.md');
+  const updatedAgents = fs.readFileSync(path.join(tmpDir, 'AGENTS.md'), 'utf-8');
+  const occurrences = (updatedAgents.match(/<!-- WHAT_IS_IT_START -->/g) || []).length;
+  assert.equal(occurrences, 1, 'Should have exactly one WHAT_IS_IT_START block without duplication');
 
   fs.rmSync(tmpDir, { recursive: true, force: true });
 });
