@@ -16,7 +16,8 @@
     "dev": "vite",
     "build:web": "vite build",
     "build:cli": "tsup",
-    "build": "pnpm build:web && pnpm build:cli",
+    "build:pages": "node scripts/export-static.js",
+    "build": "pnpm build:web && pnpm build:cli && pnpm build:pages",
     "test": "tsx --test test/core.test.ts",
     "start": "node ./bin/what-is-it.js"
   },

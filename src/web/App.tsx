@@ -11,16 +11,82 @@ export const App: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabType>('tasks');
   const [isConnected, setIsConnected] = useState<boolean>(false);
+  const [isStaticMode, setIsStaticMode] = useState<boolean>(false);
+
+  const applyLocalOverrides = (projectData: ProjectData): ProjectData => {
+    try {
+      const localOverrides = localStorage.getItem('what-is-it-local-tasks');
+      if (localOverrides) {
+        const overrides = JSON.parse(localOverrides) as Record<string, string>;
+        const updatedTasks = projectData.tasks.map(t => {
+          if (overrides[t.id]) {
+            return {
+              ...t,
+              status: overrides[t.id] as any,
+              completedAt: overrides[t.id] === 'done' ? (t.completedAt || new Date().toISOString()) : undefined
+            };
+          }
+          return t;
+        });
+        const doneCount = updatedTasks.filter(t => t.status === 'done').length;
+        const newProgress = Math.round((doneCount / updatedTasks.length) * 100);
+        return {
+          ...projectData,
+          tasks: updatedTasks,
+          meta: {
+            ...projectData.meta,
+            overallProgress: newProgress
+          }
+        };
+      }
+    } catch {
+      // Ignore localStorage errors
+    }
+    return projectData;
+  };
 
   const fetchProjectData = async () => {
     try {
-      const res = await fetch('/api/project');
-      if (!res.ok) {
-        throw new Error(`HTTP error! status: ${res.status}`);
+      // 1. Try local micro-server API
+      try {
+        const res = await fetch('/api/project');
+        if (res.ok) {
+          const json = await res.json();
+          setData(json);
+          setError(null);
+          setIsStaticMode(false);
+          setLoading(false);
+          return;
+        }
+      } catch {
+        // Fall through to static file
       }
-      const json = await res.json();
-      setData(json);
-      setError(null);
+
+      // 2. Fallback to static data.json (for GitHub Pages / static export)
+      try {
+        const staticRes = await fetch('./data.json');
+        if (staticRes.ok) {
+          const staticJson = await staticRes.json();
+          setData(applyLocalOverrides(staticJson));
+          setError(null);
+          setIsStaticMode(true);
+          setLoading(false);
+          return;
+        }
+      } catch {
+        // Fall through to window embed
+      }
+
+      // 3. Fallback to embedded window object if pre-injected
+      if ((window as any).__WHAT_IS_IT_DATA__) {
+        setData(applyLocalOverrides((window as any).__WHAT_IS_IT_DATA__));
+        setError(null);
+        setIsStaticMode(true);
+        setLoading(false);
+        return;
+      }
+
+      throw new Error('Project state unavailable from /api/project or ./data.json');
     } catch (err) {
       console.error('Failed to load project data:', err);
       setError((err as Error).message);
@@ -32,25 +98,25 @@ export const App: React.FC = () => {
   useEffect(() => {
     fetchProjectData();
 
-    // SSE Connection for Live Real-time Sync
+    // SSE Connection for Live Real-time Sync (when server is present)
     let eventSource: EventSource | null = null;
     try {
       eventSource = new EventSource('/api/events');
 
       eventSource.onopen = () => {
         setIsConnected(true);
+        setIsStaticMode(false);
       };
 
       eventSource.onmessage = () => {
-        // State changed externally (e.g. from agent CLI task done) -> refresh data live!
         fetchProjectData();
       };
 
       eventSource.onerror = () => {
         setIsConnected(false);
       };
-    } catch (e) {
-      console.warn('SSE not supported or failed to connect:', e);
+    } catch {
+      setIsConnected(false);
     }
 
     return () => {
@@ -64,35 +130,49 @@ export const App: React.FC = () => {
     if (!data) return;
 
     // Optimistic UI update
-    setData(prev => {
-      if (!prev) return prev;
-      const updatedTasks = prev.tasks.map(t => {
-        if (t.id === taskId) {
-          const newStatus = t.status === 'done' ? 'todo' : 'done';
-          return {
-            ...t,
-            status: newStatus as any,
-            completedAt: newStatus === 'done' ? new Date().toISOString() : undefined
-          };
-        }
-        return t;
-      });
-
-      const doneCount = updatedTasks.filter(t => t.status === 'done').length;
-      const newProgress = Math.round((doneCount / updatedTasks.length) * 100);
-
-      return {
-        ...prev,
-        tasks: updatedTasks,
-        meta: {
-          ...prev.meta,
-          overallProgress: newProgress,
-          updatedAt: new Date().toISOString()
-        }
-      };
+    const updatedTasks = data.tasks.map(t => {
+      if (t.id === taskId) {
+        const newStatus = t.status === 'done' ? 'todo' : 'done';
+        return {
+          ...t,
+          status: newStatus as any,
+          completedAt: newStatus === 'done' ? new Date().toISOString() : undefined
+        };
+      }
+      return t;
     });
 
-    // Sync to backend
+    const doneCount = updatedTasks.filter(t => t.status === 'done').length;
+    const newProgress = Math.round((doneCount / updatedTasks.length) * 100);
+
+    const updatedData: ProjectData = {
+      ...data,
+      tasks: updatedTasks,
+      meta: {
+        ...data.meta,
+        overallProgress: newProgress,
+        updatedAt: new Date().toISOString()
+      }
+    };
+
+    setData(updatedData);
+
+    // If static mode, persist to localStorage
+    if (isStaticMode) {
+      try {
+        const localOverrides = JSON.parse(localStorage.getItem('what-is-it-local-tasks') || '{}');
+        const currentTask = updatedTasks.find(t => t.id === taskId);
+        if (currentTask) {
+          localOverrides[taskId] = currentTask.status;
+          localStorage.setItem('what-is-it-local-tasks', JSON.stringify(localOverrides));
+        }
+      } catch {
+        // Ignore
+      }
+      return;
+    }
+
+    // Otherwise, sync to micro-server
     try {
       await fetch('/api/task/toggle', {
         method: 'POST',
@@ -100,9 +180,7 @@ export const App: React.FC = () => {
         body: JSON.stringify({ taskId })
       });
     } catch (err) {
-      console.error('Failed to toggle task status:', err);
-      // Re-fetch on error
-      fetchProjectData();
+      console.warn('Failed to sync toggle to server, falling back to local storage:', err);
     }
   };
 
@@ -143,6 +221,7 @@ export const App: React.FC = () => {
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         isConnected={isConnected}
+        isStaticMode={isStaticMode}
       />
 
       {/* Main Content Pane */}

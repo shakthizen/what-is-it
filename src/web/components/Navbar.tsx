@@ -8,13 +8,15 @@ interface NavbarProps {
   activeTab: TabType;
   setActiveTab: (tab: TabType) => void;
   isConnected: boolean;
+  isStaticMode?: boolean;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
   meta,
   activeTab,
   setActiveTab,
-  isConnected
+  isConnected,
+  isStaticMode = false
 }) => {
   return (
     <header className="sticky top-0 z-40 bg-[#090d16]/90 backdrop-blur-md border-b border-slate-800/80 px-6 py-3 flex items-center justify-between">
@@ -37,16 +39,24 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
         </div>
 
-        {/* Live SSE Status */}
+        {/* Live SSE / Static Mode Status */}
         <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-900 border border-slate-800 text-[11px]">
-          <span
-            className={`w-2 h-2 rounded-full ${
-              isConnected ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'
-            }`}
-          />
-          <span className="text-slate-400 font-medium">
-            {isConnected ? 'Live Sync' : 'Reconnecting...'}
-          </span>
+          {isStaticMode ? (
+            <>
+              <span className="w-2 h-2 rounded-full bg-cyan-400 shadow-sm shadow-cyan-400/50" />
+              <span className="text-cyan-300 font-medium">GitHub Pages</span>
+            </>
+          ) : isConnected ? (
+            <>
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="text-emerald-300 font-medium">Live Sync</span>
+            </>
+          ) : (
+            <>
+              <span className="w-2 h-2 rounded-full bg-amber-400" />
+              <span className="text-slate-400 font-medium">Reconnecting...</span>
+            </>
+          )}
         </div>
       </div>
 

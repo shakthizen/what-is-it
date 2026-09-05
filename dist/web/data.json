@@ -1,0 +1,414 @@
+{
+  "schemaVersion": 1,
+  "meta": {
+    "name": "what-is-it",
+    "description": "Live Project Memory & Interactive Wiki for Vibe Coding",
+    "projectType": "cli",
+    "frameworks": [
+      "React",
+      "Vite",
+      "Tailwind CSS",
+      "CLI"
+    ],
+    "architectureSummary": "what-is-it is a cli project built with React, Vite, Tailwind CSS, CLI. It contains 31 tracked files across 0 routes, 10 components, and 0 services/APIs.",
+    "version": "1.0.0",
+    "updatedAt": "2026-09-05T18:35:36.936Z",
+    "overallProgress": 100
+  },
+  "features": [
+    {
+      "id": "core-architecture",
+      "title": "Core Architecture & Project Setup",
+      "description": "Foundational framework, build pipeline, package configurations, and typing.",
+      "category": "Foundation",
+      "status": "completed",
+      "progress": 100,
+      "order": 1
+    },
+    {
+      "id": "ui-screens",
+      "title": "UI Screens & User Interface",
+      "description": "Visual interfaces, pages, routing, navigation, and reusable design components.",
+      "category": "Frontend",
+      "status": "completed",
+      "progress": 100,
+      "order": 2
+    },
+    {
+      "id": "data-services",
+      "title": "Data Flow, API & State Management",
+      "description": "Service layer, API clients, state stores, and backend endpoints.",
+      "category": "Data & Backend",
+      "status": "completed",
+      "progress": 100,
+      "order": 3
+    },
+    {
+      "id": "testing-quality",
+      "title": "Verification, Docs & Quality Assurance",
+      "description": "Automated test suites, live wiki documentation, and developer tooling.",
+      "category": "Operations",
+      "status": "completed",
+      "progress": 100,
+      "order": 4
+    }
+  ],
+  "tasks": [
+    {
+      "id": "task-1",
+      "featureId": "core-architecture",
+      "title": "Initialize repository structure and configuration",
+      "status": "done",
+      "priority": "high",
+      "actorRole": "Developer",
+      "why": "Establish clean directory structure, package manifests, and development dependencies.",
+      "how": "Configured package manifest with React, Vite, Tailwind CSS, CLI toolchain and scripts.",
+      "where": "package.json",
+      "when": "Project Kickoff (Milestone 1)",
+      "createdAt": "2026-09-05T18:04:14.068Z",
+      "completedAt": "2026-09-05T18:04:14.068Z"
+    },
+    {
+      "id": "task-2",
+      "featureId": "ui-screens",
+      "title": "Refine responsive layouts and UI guidelines integration",
+      "status": "done",
+      "priority": "high",
+      "actorRole": "User",
+      "why": "Ensure seamless usability across mobile, tablet, and desktop form factors with consistent design tokens.",
+      "how": "Apply Tailwind responsive utility variants and audit component spacing, typography, and contrast.",
+      "where": "src/web/components/Drawer.tsx",
+      "when": "Current Sprint",
+      "createdAt": "2026-09-05T18:04:14.068Z",
+      "completedAt": "2026-09-05T18:04:24.690Z"
+    },
+    {
+      "id": "task-3",
+      "featureId": "data-services",
+      "title": "Implement robust error boundaries and loading states",
+      "status": "done",
+      "priority": "medium",
+      "actorRole": "User",
+      "why": "Prevent application crashes during network drops and provide clear feedback to the user.",
+      "how": "Wrap async views with fallback skeletons and toast notification interceptors.",
+      "where": "src/services",
+      "when": "Next Milestone",
+      "createdAt": "2026-09-05T18:04:14.068Z",
+      "completedAt": "2026-09-05T18:35:03.719Z"
+    },
+    {
+      "id": "task-4",
+      "featureId": "testing-quality",
+      "title": "Integrate live project memory with what-is-it",
+      "status": "done",
+      "priority": "high",
+      "actorRole": "Developer",
+      "why": "Eliminate vibe coding amnesia by establishing a live, self-updating project documentation anchor.",
+      "how": "Installed what-is-it binary engine, agent skills, and interactive browser dashboard.",
+      "where": ".what-is-it.bin, .agents/skills/what-is-it/SKILL.md",
+      "when": "Initial Onboarding",
+      "createdAt": "2026-09-05T18:04:14.068Z",
+      "completedAt": "2026-09-05T18:04:14.068Z"
+    },
+    {
+      "id": "task-1693",
+      "featureId": "data-services",
+      "title": "Add telemetry and health check endpoint",
+      "status": "done",
+      "priority": "medium",
+      "actorRole": "Developer",
+      "why": "Enable monitoring",
+      "how": "Micro HTTP handler",
+      "where": "src/cli/server.ts",
+      "when": "Sprint 2",
+      "createdAt": "2026-09-05T18:04:31.693Z",
+      "completedAt": "2026-09-05T18:04:53.063Z"
+    }
+  ],
+  "wiki": [
+    {
+      "id": "architecture-overview",
+      "title": "Architecture & System Overview",
+      "category": "Architecture",
+      "order": 1,
+      "lastModified": "2026-09-05T18:04:14.068Z",
+      "bookmarks": [
+        {
+          "id": "high-level-topology",
+          "title": "High-Level Topology",
+          "level": 2
+        },
+        {
+          "id": "tech-stack-decisions",
+          "title": "Tech Stack Decisions",
+          "level": 2
+        },
+        {
+          "id": "directory-structure",
+          "title": "Directory Structure",
+          "level": 2
+        }
+      ],
+      "content": "## High-Level Topology\n\nwhat-is-it is a cli project built with React, Vite, Tailwind CSS, CLI. It contains 31 tracked files across 0 routes, 10 components, and 0 services/APIs.\n\n```text\n+-------------------------------------------------------------+\n|                      Client / UI Layer                      |\n|   Routes: 0 discovered | Components: 10 discovered  |\n+------------------------------+------------------------------+\n                               |\n                               v\n+-------------------------------------------------------------+\n|                   Services & Data Layer                     |\n|   API Endpoints / Services: 0 discovered             |\n+-------------------------------------------------------------+\n```\n\n## Tech Stack Decisions\n\n- **Project Category**: `CLI`\n- **Primary Frameworks**: `React`, `Vite`, `Tailwind CSS`, `CLI`\n- **Live Documentation**: `what-is-it` binary compressed state & agent skill.\n\n## Directory Structure\n\n```text\n📁 bin\n📁 src\n📁 src/cli\n📁 src/core\n📁 src/web\n📁 src/web/components\n📁 src/web/components/nodes\n📁 test\n```\n"
+    },
+    {
+      "id": "ui-design-guidelines",
+      "title": "UI Guidelines & Design System",
+      "category": "Design & UX",
+      "order": 2,
+      "lastModified": "2026-09-05T18:04:14.068Z",
+      "bookmarks": [
+        {
+          "id": "design-principles",
+          "title": "Design Principles",
+          "level": 2
+        },
+        {
+          "id": "color-palette-tokens",
+          "title": "Color Palette Tokens",
+          "level": 2
+        },
+        {
+          "id": "layout-and-breakpoints",
+          "title": "Layout & Breakpoints",
+          "level": 2
+        }
+      ],
+      "content": "## Design Principles\n\n1. **Visual Clarity First**: Use crisp vector wireframes, distinct typography scales, and generous whitespace.\n2. **Immediate Feedback**: Micro-interactions, animated state transitions, and clear loading states.\n3. **Actor-Role Empathy**: Customize interfaces specifically for the active user role.\n\n## Color Palette Tokens\n\n| Role / Intent | Hex Token | Visual Representation |\n| :--- | :--- | :--- |\n| **Primary Brand** | `#6366f1` (Indigo 500) | 🟣 Primary buttons, active tabs |\n| **Success / Done** | `#10b981` (Emerald 500) | 🟢 Completed tasks, status indicators |\n| **In Progress** | `#f59e0b` (Amber 500) | 🟡 Active execution, pending review |\n| **Dark Background** | `#090d16` (Slate 950) | ⬛ Deep obsidian canvas |\n| **Surface Card** | `#131b2e` (Slate 900) | 🪟 Frosted glass card containers |\n\n## Layout & Breakpoints\n\n- **Mobile**: `< 640px` — single-column flow, bottom action sheet / bottom tab bar.\n- **Tablet**: `640px - 1024px` — flexible grid with collapsible sidebar.\n- **Desktop**: `> 1024px` — three-pane view (Navigation + Main Workspace + Bookmarks/Inspector).\n"
+    },
+    {
+      "id": "actor-roles-user-journeys",
+      "title": "Actor Roles & User Journeys",
+      "category": "Product & UX",
+      "order": 3,
+      "lastModified": "2026-09-05T18:04:14.068Z",
+      "bookmarks": [
+        {
+          "id": "identified-actors",
+          "title": "Identified Actors",
+          "level": 2
+        },
+        {
+          "id": "primary-user-flow",
+          "title": "Primary User Flow",
+          "level": 2
+        }
+      ],
+      "content": "## Identified Actors\n\n- 👤 **Guest / Visitor**: Unauthenticated user exploring landing pages and feature overviews.\n- 🔑 **Authenticated User**: Signed-in member executing tasks, workflows, and viewing personal dashboards.\n- 🛡️ **Administrator**: System manager managing configuration, user roles, and monitoring metrics.\n\n## Primary User Flow\n\n```text\n[Guest] --> (Visits App) --> [Landing Page]\n                                  |\n                                  v (Signs Up / Logs In)\n                           [Authentication Modal]\n                                  |\n                                  v (Authorized)\n[User]  --> [Main Dashboard] <---> [Interactive Detail Views]\n                                  |\n                                  v (Admin Privileges)\n[Admin] --> [Management Console]\n```\n"
+    }
+  ],
+  "flows": [
+    {
+      "id": "main-user-journey",
+      "title": "Primary User Onboarding & Dashboard Flow",
+      "actorRole": "Guest & User",
+      "description": "End-to-end journey from initial landing visit, auth modal verification, to main dashboard workspace.",
+      "nodes": [
+        {
+          "id": "actor-guest",
+          "type": "actorNode",
+          "position": {
+            "x": 50,
+            "y": 150
+          },
+          "data": {
+            "title": "Guest / Visitor",
+            "subtitle": "Unauthenticated User",
+            "actorRole": "Guest"
+          }
+        },
+        {
+          "id": "screen-landing",
+          "type": "desktopFrame",
+          "position": {
+            "x": 300,
+            "y": 50
+          },
+          "data": {
+            "title": "Landing / Entry View",
+            "subtitle": "src/pages/index",
+            "actorRole": "Guest",
+            "frameType": "desktop",
+            "uiGuidelines": {
+              "layout": "Navbar + Hero Section + Feature Grid",
+              "colors": [
+                "#6366f1",
+                "#090d16",
+                "#ffffff"
+              ],
+              "typography": "Display Bold 32px, Body Regular 14px",
+              "responsive": "Fluid container with max-w-6xl",
+              "specs": [
+                "Sticky navigation header",
+                "CTA Button: Get Started",
+                "Zero cumulative layout shift"
+              ]
+            },
+            "visualLayout": {
+              "headerTitle": "what-is-it",
+              "navItems": [
+                "Features",
+                "Docs",
+                "Sign In"
+              ],
+              "contentBlocks": [
+                {
+                  "type": "hero",
+                  "label": "Hero Banner & Core Value Prop",
+                  "height": 60
+                },
+                {
+                  "type": "card",
+                  "label": "Feature Highlights Grid (3 cards)",
+                  "height": 50
+                }
+              ]
+            },
+            "actions": [
+              {
+                "label": "Click Sign Up",
+                "targetNodeId": "modal-auth"
+              },
+              {
+                "label": "Explore Directly",
+                "targetNodeId": "screen-dashboard"
+              }
+            ]
+          }
+        },
+        {
+          "id": "modal-auth",
+          "type": "modalFrame",
+          "position": {
+            "x": 700,
+            "y": 40
+          },
+          "data": {
+            "title": "Authentication Dialog",
+            "subtitle": "Sign In / Register Modal",
+            "actorRole": "Guest",
+            "frameType": "modal",
+            "uiGuidelines": {
+              "layout": "Centered modal with backdrop-blur-md",
+              "colors": [
+                "#131b2e",
+                "#6366f1",
+                "#10b981"
+              ],
+              "typography": "Heading 18px Semi-bold",
+              "specs": [
+                "OAuth 2.0 / Email passwordless",
+                "Accessible trap-focus",
+                "Escape key dismiss"
+              ]
+            },
+            "visualLayout": {
+              "headerTitle": "Sign into what-is-it",
+              "contentBlocks": [
+                {
+                  "type": "form",
+                  "label": "Email & Password inputs",
+                  "height": 45
+                },
+                {
+                  "type": "card",
+                  "label": "Social Sign-In (GitHub / Google)",
+                  "height": 35
+                }
+              ]
+            },
+            "actions": [
+              {
+                "label": "Auth Success",
+                "targetNodeId": "screen-dashboard"
+              }
+            ]
+          }
+        },
+        {
+          "id": "screen-dashboard",
+          "type": "desktopFrame",
+          "position": {
+            "x": 1080,
+            "y": 50
+          },
+          "data": {
+            "title": "Main Application Dashboard",
+            "subtitle": "src/pages/dashboard",
+            "actorRole": "User",
+            "frameType": "desktop",
+            "uiGuidelines": {
+              "layout": "Sidebar Navigation + Workspace Canvas",
+              "colors": [
+                "#090d16",
+                "#131b2e",
+                "#6366f1",
+                "#10b981"
+              ],
+              "typography": "Inter / System UI, 14px primary",
+              "specs": [
+                "Live SSE progress streaming",
+                "Filterable data table",
+                "Keyboard shortcuts"
+              ]
+            },
+            "visualLayout": {
+              "headerTitle": "Dashboard Workspace",
+              "navItems": [
+                "Overview",
+                "Tasks",
+                "Settings"
+              ],
+              "sidebarItems": [
+                "Projects",
+                "Analytics",
+                "Team",
+                "API"
+              ],
+              "contentBlocks": [
+                {
+                  "type": "stat",
+                  "label": "Metric KPI Cards (3 stats)",
+                  "height": 35
+                },
+                {
+                  "type": "table",
+                  "label": "Active Items & Progress Table",
+                  "height": 70
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "edges": [
+        {
+          "id": "e-actor-landing",
+          "source": "actor-guest",
+          "target": "screen-landing",
+          "label": "Visits URL",
+          "animated": true
+        },
+        {
+          "id": "e-landing-auth",
+          "source": "screen-landing",
+          "target": "modal-auth",
+          "label": "Clicks \"Sign In\""
+        },
+        {
+          "id": "e-auth-dash",
+          "source": "modal-auth",
+          "target": "screen-dashboard",
+          "label": "Authenticated",
+          "animated": true
+        },
+        {
+          "id": "e-landing-dash",
+          "source": "screen-landing",
+          "target": "screen-dashboard",
+          "label": "Guest Access / Demo"
+        }
+      ]
+    }
+  ]
+}

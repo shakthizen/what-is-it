@@ -1,7 +1,8 @@
 # `what-is-it` ⚡
 
 > **Live Project Memory, Task Tracker & Interactive Wiki for Vibe Coding**  
-> Eliminates "vibe coding amnesia" by giving both humans and AI agents a persistent, live, self-updating anchor.
+> Eliminates "vibe coding amnesia" by giving both humans and AI agents a persistent, live, self-updating anchor.  
+> 🌐 **Live Demo & Built-in Wiki**: [https://shakthizen.github.io/what-is-it/](https://shakthizen.github.io/what-is-it/)
 
 ---
 
