@@ -9,6 +9,10 @@ on:
         description: 'npm distribution tag (default: latest)'
         required: true
         default: 'latest'
+      otp:
+        description: '6-digit npm 2FA OTP code (if not using an Automation token)'
+        required: false
+        default: ''
 
 jobs:
   build-and-publish:
@@ -40,6 +44,11 @@ jobs:
         run: pnpm build
 
       - name: Publish to npm
-        run: npm publish --access public --tag ${{ github.event.inputs.tag || 'latest' }}
+        run: |
+          OTP_FLAG=""
+          if [ -n "${{ github.event.inputs.otp }}" ]; then
+            OTP_FLAG="--otp=${{ github.event.inputs.otp }}"
+          fi
+          npm publish --access public --tag ${{ github.event.inputs.tag || 'latest' }} $OTP_FLAG
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
