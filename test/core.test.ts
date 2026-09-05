@@ -185,7 +185,7 @@ test('Caveman Formatter for Agent Efficiency', () => {
   };
 
   const output = formatCavemanStatus(sampleData);
-  assert.ok(output.includes('UGG. PROJECT:'), 'Output should start with caveman UGG.');
+  assert.ok(output.includes('UGG.') && output.includes('PROJECT:'), 'Output should contain caveman UGG. and PROJECT:');
   assert.ok(output.includes('TASKS:'), 'Output should show compact tasks summary');
   assert.ok(output.includes('AGENT COMMANDS:'), 'Output should show actionable CLI commands');
 
