@@ -14,6 +14,46 @@ export interface ProjectMeta {
   overallProgress: number; // 0-100
 }
 
+export type ImplementationStatus = 'implemented' | 'in_progress' | 'missing';
+
+export interface RoleBasedAction {
+  id: string;
+  actorRole: string; // e.g. 'Guest', 'User', 'Admin', 'Developer'
+  action: string;
+  status: ImplementationStatus;
+  targetScreenOrEndpoint?: string;
+  notes?: string;
+}
+
+export interface UserStory {
+  id: string;
+  actorRole: string; // e.g. 'Guest', 'User', 'Admin', 'Developer'
+  story: string;     // "As a [role], I want to [goal] so that [benefit]"
+  status: ImplementationStatus;
+  acceptanceCriteria?: string[];
+}
+
+export interface PlannedGapDetails {
+  whatsMissing: string[];
+  why: string;
+  how: string;
+  where: string[];
+  when: string;
+}
+
+export interface SubFeature {
+  id: string;
+  title: string;
+  description?: string;
+  status: ImplementationStatus;
+  what: string;   // Capability description
+  why: string;    // Rationale / problem solved
+  how: string;    // Technical approach / implementation
+  where: string;  // Target files, routes, or modules
+  when: string;   // Milestone or phase
+  roleActions?: RoleBasedAction[];
+}
+
 export interface Feature {
   id: string;
   title: string;
@@ -22,6 +62,10 @@ export interface Feature {
   status: FeatureStatus;
   progress: number; // 0-100
   order: number;
+  subFeatures: SubFeature[];
+  userStories?: UserStory[];
+  roleActions?: RoleBasedAction[];
+  missingDetails?: PlannedGapDetails;
 }
 
 export interface Task {
@@ -130,7 +174,7 @@ export interface ProjectData {
   schemaVersion: number;
   meta: ProjectMeta;
   features: Feature[];
-  tasks: Task[];
+  tasks?: Task[];
   wiki: WikiPage[];
   flows: UserFlow[];
 }
@@ -140,7 +184,7 @@ export function getProjectJsonSchema(): Record<string, any> {
     $schema: 'http://json-schema.org/draft-07/schema#',
     title: 'ProjectData',
     type: 'object',
-    required: ['schemaVersion', 'meta', 'features', 'tasks', 'wiki', 'flows'],
+    required: ['schemaVersion', 'meta', 'features', 'wiki', 'flows'],
     properties: {
       schemaVersion: { type: 'number', default: 1 },
       meta: {
@@ -160,7 +204,7 @@ export function getProjectJsonSchema(): Record<string, any> {
         type: 'array',
         items: {
           type: 'object',
-          required: ['id', 'title', 'category', 'status', 'progress'],
+          required: ['id', 'title', 'category', 'status', 'progress', 'subFeatures'],
           properties: {
             id: { type: 'string' },
             title: { type: 'string' },
@@ -168,7 +212,64 @@ export function getProjectJsonSchema(): Record<string, any> {
             category: { type: 'string' },
             status: { type: 'string', enum: ['planned', 'in_progress', 'completed'] },
             progress: { type: 'number' },
-            order: { type: 'number' }
+            order: { type: 'number' },
+            subFeatures: {
+              type: 'array',
+              items: {
+                type: 'object',
+                required: ['id', 'title', 'status', 'what', 'why', 'how', 'where', 'when'],
+                properties: {
+                  id: { type: 'string' },
+                  title: { type: 'string' },
+                  description: { type: 'string' },
+                  status: { type: 'string', enum: ['implemented', 'in_progress', 'missing'] },
+                  what: { type: 'string' },
+                  why: { type: 'string' },
+                  how: { type: 'string' },
+                  where: { type: 'string' },
+                  when: { type: 'string' }
+                }
+              }
+            },
+            userStories: {
+              type: 'array',
+              items: {
+                type: 'object',
+                required: ['id', 'actorRole', 'story', 'status'],
+                properties: {
+                  id: { type: 'string' },
+                  actorRole: { type: 'string' },
+                  story: { type: 'string' },
+                  status: { type: 'string', enum: ['implemented', 'in_progress', 'missing'] },
+                  acceptanceCriteria: { type: 'array', items: { type: 'string' } }
+                }
+              }
+            },
+            roleActions: {
+              type: 'array',
+              items: {
+                type: 'object',
+                required: ['id', 'actorRole', 'action', 'status'],
+                properties: {
+                  id: { type: 'string' },
+                  actorRole: { type: 'string' },
+                  action: { type: 'string' },
+                  status: { type: 'string', enum: ['implemented', 'in_progress', 'missing'] },
+                  targetScreenOrEndpoint: { type: 'string' },
+                  notes: { type: 'string' }
+                }
+              }
+            },
+            missingDetails: {
+              type: 'object',
+              properties: {
+                whatsMissing: { type: 'array', items: { type: 'string' } },
+                why: { type: 'string' },
+                how: { type: 'string' },
+                where: { type: 'array', items: { type: 'string' } },
+                when: { type: 'string' }
+              }
+            }
           }
         }
       },

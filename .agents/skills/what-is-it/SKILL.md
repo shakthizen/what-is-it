@@ -9,7 +9,7 @@ Ugg. Agent listen good.
 This project uses `@shakthizen/what-is-it` to track tasks, architecture, and UI flows.
 
 ## PROJECT CONTEXT:
-- **Project Name**: what-is-it
+- **Project Name**: @shakthizen/what-is-it
 - **Project Type**: `cli`
 - **Frameworks**: React, Vite, Tailwind CSS, CLI
 - **Binary State File (Primary)**:

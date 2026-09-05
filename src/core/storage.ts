@@ -10,10 +10,32 @@ const MAGIC_HEADER = Buffer.from([0x57, 0x49, 0x54, 0x31]); // 'WIT1'
 
 export function computeProgress(data: ProjectData): ProjectData {
   const updatedData = { ...data };
-  const { tasks, features } = updatedData;
+  const { tasks = [], features = [] } = updatedData;
+
+  let totalSubFeatures = 0;
+  let totalImplementedSubFeatures = 0;
+  let hasAnySubFeatures = false;
 
   // Compute feature progress
   updatedData.features = features.map(feat => {
+    // If subFeatures exist, drive progress from subFeatures
+    if (feat.subFeatures && feat.subFeatures.length > 0) {
+      hasAnySubFeatures = true;
+      const subTotal = feat.subFeatures.length;
+      const subImplemented = feat.subFeatures.filter(sf => sf.status === 'implemented').length;
+      totalSubFeatures += subTotal;
+      totalImplementedSubFeatures += subImplemented;
+
+      const progress = Math.round((subImplemented / subTotal) * 100);
+      const status = progress === 100 ? 'completed' : progress > 0 ? 'in_progress' : feat.status;
+      return {
+        ...feat,
+        progress,
+        status
+      };
+    }
+
+    // Fallback to legacy tasks if no subFeatures
     const featTasks = tasks.filter(t => t.featureId === feat.id);
     if (featTasks.length === 0) {
       return feat;
@@ -29,11 +51,16 @@ export function computeProgress(data: ProjectData): ProjectData {
   });
 
   // Compute overall progress
-  if (tasks.length === 0) {
-    updatedData.meta.overallProgress = 0;
-  } else {
+  if (hasAnySubFeatures && totalSubFeatures > 0) {
+    updatedData.meta.overallProgress = Math.round((totalImplementedSubFeatures / totalSubFeatures) * 100);
+  } else if (tasks.length > 0) {
     const totalDone = tasks.filter(t => t.status === 'done').length;
     updatedData.meta.overallProgress = Math.round((totalDone / tasks.length) * 100);
+  } else if (features.length > 0) {
+    const sumProgress = updatedData.features.reduce((acc, f) => acc + (f.progress || 0), 0);
+    updatedData.meta.overallProgress = Math.round(sumProgress / features.length);
+  } else {
+    updatedData.meta.overallProgress = 0;
   }
 
   updatedData.meta.updatedAt = new Date().toISOString();

@@ -7,7 +7,7 @@ import {
   saveProjectData,
   scanProject,
   synthesizeProjectData
-} from "../chunk-D4HK3A54.js";
+} from "../chunk-J6DZW67A.js";
 
 // src/cli/index.ts
 import { Command } from "commander";
@@ -512,46 +512,72 @@ ${pc2.bold(pc2.green("\u{1F680} what-is-it web viewer running!"))}`);
 // src/cli/caveman.ts
 import pc3 from "picocolors";
 function formatCavemanStatus(data) {
-  const { meta, features, tasks } = data;
-  const total = tasks.length;
-  const done = tasks.filter((t) => t.status === "done").length;
-  const inProgress = tasks.filter((t) => t.status === "in_progress");
-  const todo = tasks.filter((t) => t.status === "todo");
+  const { meta, features, tasks = [] } = data;
+  const allSubFeatures = features.flatMap((f) => f.subFeatures || []);
+  const hasSubFeatures = allSubFeatures.length > 0;
   const lines = [];
   lines.push(`${pc3.bold(pc3.yellow("UGG."))} PROJECT: ${pc3.cyan(meta.name)} [${pc3.green(`${meta.overallProgress}%`)} DONE] TYPE: ${meta.projectType}`);
-  lines.push(`TASKS: ${pc3.green(`${done}`)} DONE / ${pc3.yellow(`${inProgress.length}`)} ACTIVE / ${pc3.white(`${todo.length}`)} TODO (TOTAL: ${total})`);
-  lines.push("");
-  lines.push(pc3.bold("FEATURES:"));
-  for (const f of features) {
-    const fTasks = tasks.filter((t) => t.featureId === f.id);
-    const fDone = fTasks.filter((t) => t.status === "done").length;
-    const statColor = f.status === "completed" ? pc3.green : f.status === "in_progress" ? pc3.yellow : pc3.dim;
-    lines.push(`- [${statColor(`${f.progress}%`)}] ${pc3.bold(f.title)} (${fDone}/${fTasks.length} tasks)`);
-  }
-  if (inProgress.length > 0) {
+  if (hasSubFeatures) {
+    const implementedCount = allSubFeatures.filter((s) => s.status === "implemented").length;
+    const inProgress = allSubFeatures.filter((s) => s.status === "in_progress");
+    const missing = allSubFeatures.filter((s) => s.status === "missing");
+    lines.push(`SPECS: ${pc3.green(`${implementedCount}`)} IMPLEMENTED / ${pc3.yellow(`${inProgress.length}`)} ACTIVE / ${pc3.red(`${missing.length}`)} MISSING (TOTAL: ${allSubFeatures.length})`);
     lines.push("");
-    lines.push(pc3.bold(pc3.yellow("CURRENT FOCUS (DO NOW):")));
-    for (const t of inProgress) {
-      lines.push(`* [${pc3.cyan(t.id)}] "${pc3.bold(t.title)}"`);
-      lines.push(`  WHY:   ${t.why}`);
-      lines.push(`  WHERE: ${pc3.underline(t.where)}`);
-      lines.push(`  HOW:   ${t.how}`);
-      lines.push(`  WHEN:  ${t.when}`);
+    lines.push(pc3.bold("FEATURES:"));
+    for (const f of features) {
+      const subs = f.subFeatures || [];
+      const done = subs.filter((s) => s.status === "implemented").length;
+      const statColor = f.status === "completed" ? pc3.green : f.status === "in_progress" ? pc3.yellow : pc3.dim;
+      lines.push(`- [${statColor(`${f.progress}%`)}] ${pc3.bold(f.title)} (${done}/${subs.length} sub-features)`);
+      if (f.missingDetails && f.missingDetails.whatsMissing?.length > 0) {
+        lines.push(`  ${pc3.red("!")} GAPS: ${pc3.dim(f.missingDetails.whatsMissing.slice(0, 2).join("; "))}`);
+      }
     }
-  } else if (todo.length > 0) {
-    const nextTask = todo[0];
+    const focusItems = inProgress.length > 0 ? inProgress : missing.slice(0, 3);
+    if (focusItems.length > 0) {
+      lines.push("");
+      lines.push(pc3.bold(pc3.yellow("WHAT'S MISSING & NEXT PLANNED WORK (DO NOW):")));
+      for (const sf of focusItems) {
+        const icon = sf.status === "in_progress" ? pc3.yellow("\u26A1") : pc3.red("!");
+        lines.push(`${icon} [${pc3.cyan(sf.id)}] "${pc3.bold(sf.title)}" (${sf.status})`);
+        lines.push(`  WHAT:  ${sf.what}`);
+        lines.push(`  WHY:   ${sf.why}`);
+        lines.push(`  WHERE: ${pc3.underline(sf.where)}`);
+        lines.push(`  HOW:   ${sf.how}`);
+        lines.push(`  WHEN:  ${sf.when}`);
+      }
+    }
+  } else {
+    const total = tasks.length;
+    const done = tasks.filter((t) => t.status === "done").length;
+    const inProgress = tasks.filter((t) => t.status === "in_progress");
+    const todo = tasks.filter((t) => t.status === "todo");
+    lines.push(`TASKS: ${pc3.green(`${done}`)} DONE / ${pc3.yellow(`${inProgress.length}`)} ACTIVE / ${pc3.white(`${todo.length}`)} TODO (TOTAL: ${total})`);
     lines.push("");
-    lines.push(pc3.bold("NEXT QUEUED TASK:"));
-    lines.push(`* [${pc3.cyan(nextTask.id)}] "${pc3.bold(nextTask.title)}"`);
-    lines.push(`  WHY:   ${nextTask.why}`);
-    lines.push(`  WHERE: ${pc3.underline(nextTask.where)}`);
-    lines.push(`  HOW:   ${nextTask.how}`);
+    lines.push(pc3.bold("FEATURES:"));
+    for (const f of features) {
+      const fTasks = tasks.filter((t) => t.featureId === f.id);
+      const fDone = fTasks.filter((t) => t.status === "done").length;
+      const statColor = f.status === "completed" ? pc3.green : f.status === "in_progress" ? pc3.yellow : pc3.dim;
+      lines.push(`- [${statColor(`${f.progress}%`)}] ${pc3.bold(f.title)} (${fDone}/${fTasks.length} tasks)`);
+    }
+    if (inProgress.length > 0) {
+      lines.push("");
+      lines.push(pc3.bold(pc3.yellow("CURRENT FOCUS (DO NOW):")));
+      for (const t of inProgress) {
+        lines.push(`* [${pc3.cyan(t.id)}] "${pc3.bold(t.title)}"`);
+        lines.push(`  WHY:   ${t.why}`);
+        lines.push(`  WHERE: ${pc3.underline(t.where)}`);
+        lines.push(`  HOW:   ${t.how}`);
+        lines.push(`  WHEN:  ${t.when}`);
+      }
+    }
   }
   lines.push("");
   lines.push(`${pc3.dim("AGENT COMMANDS:")}`);
-  lines.push(`- Mark done: ${pc3.cyan("npx @shakthizen/what-is-it task done <id>")}`);
-  lines.push(`- Add task:  ${pc3.cyan('npx @shakthizen/what-is-it task add --title "..." --why "..." --where "..."')}`);
-  lines.push(`- Open UI:   ${pc3.cyan("npx @shakthizen/what-is-it")}`);
+  lines.push(`- Check status:  ${pc3.cyan("npx @shakthizen/what-is-it status")}`);
+  lines.push(`- Inspect specs: ${pc3.cyan("npx @shakthizen/what-is-it schema")}`);
+  lines.push(`- Open UI:       ${pc3.cyan("npx @shakthizen/what-is-it")}`);
   return lines.join("\n");
 }
 function formatCavemanSuccess(action, id, detail) {
@@ -566,7 +592,7 @@ function formatCavemanError(err) {
 
 // src/cli/index.ts
 var program = new Command();
-program.name("what-is-it").description("Live Project Memory, Task Tracker & Interactive Wiki for Vibe Coding").version("1.0.1");
+program.name("what-is-it").description("Live Project Memory, Task Tracker & Interactive Wiki for Vibe Coding").version("1.1.0");
 function askQuestion(query) {
   if (!process.stdin.isTTY) return Promise.resolve("");
   const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
@@ -783,7 +809,7 @@ program.command("export").description("Export project data to JSON or Markdown")
     console.log(JSON.stringify(data, null, 2));
   }
 });
-program.command("import <file>").description("Import project data from a JSON file into .what-is-it.bin").action((filePath) => {
+program.command("import <file>").description("Import project data from a JSON file into .what-is-it.bin and clean up scratch files").option("--no-clean", "Do not remove scratch state file after import").action((filePath, options) => {
   const cwd = process.cwd();
   const fullPath = path3.resolve(cwd, filePath);
   if (!fs3.existsSync(fullPath)) {
@@ -795,6 +821,22 @@ program.command("import <file>").description("Import project data from a JSON fi
     const incoming = JSON.parse(raw);
     saveProjectData(cwd, incoming);
     console.log(formatCavemanSuccess("PROJECT DATA IMPORTED", path3.basename(filePath)));
+    const isScratch = filePath.includes("scratch") || fullPath.includes("/scratch/");
+    if (isScratch && options.clean !== false) {
+      try {
+        fs3.unlinkSync(fullPath);
+        console.log(pc4.dim(`\u2714 Cleaned up scratch state file: ${filePath}`));
+        const parentDir = path3.dirname(fullPath);
+        if (path3.basename(parentDir) === "scratch") {
+          const remaining = fs3.readdirSync(parentDir);
+          if (remaining.length === 0) {
+            fs3.rmdirSync(parentDir);
+            console.log(pc4.dim(`\u2714 Pruned empty scratch directory`));
+          }
+        }
+      } catch {
+      }
+    }
   } catch (err) {
     console.error(formatCavemanError(`Import failed: ${err.message}`));
     process.exit(1);

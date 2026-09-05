@@ -1,5 +1,12 @@
 import React, { useState } from 'react';
-import type { ProjectData, Task, TaskStatus } from '../types.js';
+import type {
+  ProjectData,
+  Feature,
+  SubFeature,
+  RoleBasedAction,
+  UserStory,
+  ImplementationStatus
+} from '../types.js';
 
 interface Props {
   data: ProjectData;
@@ -7,44 +14,57 @@ interface Props {
 }
 
 export const ProgressDashboard: React.FC<Props> = ({ data }) => {
-  const { meta, features, tasks } = data;
-  const [selectedFeature, setSelectedFeature] = useState<string>('all');
+  const { meta, features = [], tasks = [] } = data;
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
+  const [selectedRole, setSelectedRole] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [expandedDetails, setExpandedDetails] = useState<Record<string, boolean>>({});
 
-  const totalTasks = tasks.length;
-  const doneTasks = tasks.filter(t => t.status === 'done').length;
-  const inProgressTasks = tasks.filter(t => t.status === 'in_progress').length;
-  const todoTasks = tasks.filter(t => t.status === 'todo').length;
+  const toggleExpand = (id: string) => {
+    setExpandedDetails(prev => ({ ...prev, [id]: !prev[id] }));
+  };
 
-  const filteredTasks = tasks.filter(t => {
-    if (selectedFeature !== 'all' && t.featureId !== selectedFeature) return false;
-    if (selectedStatus !== 'all' && t.status !== selectedStatus) return false;
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      return (
-        t.title.toLowerCase().includes(q) ||
-        t.where.toLowerCase().includes(q) ||
-        t.why.toLowerCase().includes(q) ||
-        t.how.toLowerCase().includes(q) ||
-        t.id.toLowerCase().includes(q)
-      );
+  // Collect all sub-features across features
+  const allSubFeatures: SubFeature[] = features.flatMap(f => f.subFeatures || []);
+  const hasSubFeatures = allSubFeatures.length > 0;
+
+  const totalSpecs = hasSubFeatures ? allSubFeatures.length : tasks.length;
+  const implementedCount = hasSubFeatures
+    ? allSubFeatures.filter(s => s.status === 'implemented').length
+    : tasks.filter(t => t.status === 'done').length;
+  const inProgressCount = hasSubFeatures
+    ? allSubFeatures.filter(s => s.status === 'in_progress').length
+    : tasks.filter(t => t.status === 'in_progress').length;
+  const missingCount = hasSubFeatures
+    ? allSubFeatures.filter(s => s.status === 'missing').length
+    : tasks.filter(t => t.status === 'todo').length;
+
+  const categories = Array.from(new Set(features.map(f => f.category).filter(Boolean)));
+
+  // Filter features & sub-features
+  const filteredFeatures = features.filter(feature => {
+    if (selectedCategory !== 'all' && feature.category !== selectedCategory) {
+      return false;
     }
     return true;
   });
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-8 space-y-8">
-      {/* Top Banner & Progress Bar */}
-      <div className="bg-[#0d131f] border border-slate-800 rounded-2xl p-6 relative overflow-hidden">
+      {/* Top Banner & Overall Progress */}
+      <div className="bg-[#0d131f] border border-slate-800 rounded-2xl p-6 relative overflow-hidden shadow-xl">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div className="space-y-2 max-w-2xl">
             <div className="flex items-center gap-2">
               <span className="px-2.5 py-0.5 rounded text-xs font-mono font-medium bg-indigo-950 text-indigo-300 border border-indigo-800">
                 Live Memory
               </span>
+              <span className="px-2.5 py-0.5 rounded text-xs font-mono font-medium bg-slate-800 text-slate-300 border border-slate-700">
+                v{meta.version}
+              </span>
               <span className="text-slate-400 text-xs font-mono">
-                Updated {new Date(meta.updatedAt).toLocaleTimeString()}
+                Synced {new Date(meta.updatedAt).toLocaleTimeString()}
               </span>
             </div>
             <h1 className="text-2xl lg:text-3xl font-extrabold text-white tracking-tight">
@@ -66,10 +86,10 @@ export const ProgressDashboard: React.FC<Props> = ({ data }) => {
           </div>
 
           {/* Dynamic Progress Circular / Stats Display */}
-          <div className="bg-[#090d16]/80 border border-slate-800 rounded-xl p-4 lg:w-80 shrink-0 space-y-3">
+          <div className="bg-[#090d16]/90 border border-slate-800 rounded-xl p-5 lg:w-88 shrink-0 space-y-3.5 shadow-inner">
             <div className="flex justify-between items-center">
               <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                Overall Progress
+                Overall Feature Completion
               </span>
               <span className="text-2xl font-black font-mono text-emerald-400">
                 {meta.overallProgress}%
@@ -85,18 +105,22 @@ export const ProgressDashboard: React.FC<Props> = ({ data }) => {
             </div>
 
             {/* Quick Metrics */}
-            <div className="grid grid-cols-3 gap-2 pt-1 text-center">
-              <div className="bg-slate-900/60 rounded-lg py-1.5 border border-slate-800/60">
+            <div className="grid grid-cols-4 gap-2 pt-1 text-center">
+              <div className="bg-slate-900/70 rounded-lg py-1.5 border border-slate-800/80">
+                <div className="text-[10px] text-slate-400 font-medium">Features</div>
+                <div className="text-sm font-bold text-white font-mono">{features.length}</div>
+              </div>
+              <div className="bg-slate-900/70 rounded-lg py-1.5 border border-slate-800/80">
                 <div className="text-[10px] text-slate-400 font-medium">Done</div>
-                <div className="text-sm font-bold text-emerald-400 font-mono">{doneTasks}</div>
+                <div className="text-sm font-bold text-emerald-400 font-mono">{implementedCount}</div>
               </div>
-              <div className="bg-slate-900/60 rounded-lg py-1.5 border border-slate-800/60">
+              <div className="bg-slate-900/70 rounded-lg py-1.5 border border-slate-800/80">
                 <div className="text-[10px] text-slate-400 font-medium">Active</div>
-                <div className="text-sm font-bold text-amber-400 font-mono">{inProgressTasks}</div>
+                <div className="text-sm font-bold text-amber-400 font-mono">{inProgressCount}</div>
               </div>
-              <div className="bg-slate-900/60 rounded-lg py-1.5 border border-slate-800/60">
-                <div className="text-[10px] text-slate-400 font-medium">Todo</div>
-                <div className="text-sm font-bold text-slate-300 font-mono">{todoTasks}</div>
+              <div className="bg-slate-900/70 rounded-lg py-1.5 border border-slate-800/80">
+                <div className="text-[10px] text-slate-400 font-medium">Gaps</div>
+                <div className="text-sm font-bold text-rose-400 font-mono">{missingCount}</div>
               </div>
             </div>
           </div>
@@ -109,7 +133,7 @@ export const ProgressDashboard: React.FC<Props> = ({ data }) => {
         <div className="relative flex-1">
           <input
             type="text"
-            placeholder="Search tasks, why, how, or file paths..."
+            placeholder="Search sub-features, capability (what), why, how, or target files..."
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
             className="w-full bg-[#131b2e] border border-slate-700/80 rounded-lg pl-8 pr-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-colors"
@@ -118,17 +142,17 @@ export const ProgressDashboard: React.FC<Props> = ({ data }) => {
         </div>
 
         {/* Filters */}
-        <div className="flex items-center gap-2">
-          {/* Feature Filter */}
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Category Filter */}
           <select
-            value={selectedFeature}
-            onChange={e => setSelectedFeature(e.target.value)}
+            value={selectedCategory}
+            onChange={e => setSelectedCategory(e.target.value)}
             className="bg-[#131b2e] border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-indigo-500"
           >
-            <option value="all">All Features</option>
-            {features.map(f => (
-              <option key={f.id} value={f.id}>
-                {f.title}
+            <option value="all">All Categories</option>
+            {categories.map(cat => (
+              <option key={cat} value={cat}>
+                {cat}
               </option>
             ))}
           </select>
@@ -140,38 +164,97 @@ export const ProgressDashboard: React.FC<Props> = ({ data }) => {
             className="bg-[#131b2e] border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-indigo-500"
           >
             <option value="all">All Statuses</option>
-            <option value="todo">Todo</option>
+            <option value="implemented">Implemented</option>
             <option value="in_progress">In Progress</option>
-            <option value="done">Done</option>
+            <option value="missing">Missing Gaps</option>
+          </select>
+
+          {/* Role Filter */}
+          <select
+            value={selectedRole}
+            onChange={e => setSelectedRole(e.target.value)}
+            className="bg-[#131b2e] border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-indigo-500"
+          >
+            <option value="all">All Roles</option>
+            <option value="Developer">Developer</option>
+            <option value="User">User</option>
+            <option value="Admin">Admin</option>
+            <option value="Guest">Guest</option>
           </select>
         </div>
       </div>
 
-      {/* Feature Groups & Tasks */}
+      {/* Feature Groups & Sub-Features */}
       <div className="space-y-8">
-        {features.map(feature => {
-          const featureTasks = filteredTasks.filter(t => t.featureId === feature.id);
-          if (featureTasks.length === 0 && selectedFeature !== 'all') return null;
+        {filteredFeatures.map(feature => {
+          const subFeatures = feature.subFeatures || [];
 
-          const totalFeatTasks = tasks.filter(t => t.featureId === feature.id).length;
-          const doneFeatTasks = tasks.filter(t => t.featureId === feature.id && t.status === 'done').length;
+          // Filter sub-features by search and status
+          const filteredSubFeatures = subFeatures.filter(sf => {
+            if (selectedStatus !== 'all' && sf.status !== selectedStatus) return false;
+            if (selectedRole !== 'all') {
+              const hasRole = sf.roleActions?.some(ra => ra.actorRole === selectedRole);
+              if (!hasRole && selectedRole !== 'Developer') return false;
+            }
+            if (searchQuery.trim()) {
+              const q = searchQuery.toLowerCase();
+              return (
+                sf.title.toLowerCase().includes(q) ||
+                sf.what.toLowerCase().includes(q) ||
+                sf.why.toLowerCase().includes(q) ||
+                sf.how.toLowerCase().includes(q) ||
+                sf.where.toLowerCase().includes(q) ||
+                sf.id.toLowerCase().includes(q)
+              );
+            }
+            return true;
+          });
+
+          // Filter role actions and user stories
+          const featureRoleActions = (feature.roleActions || []).filter(ra => {
+            if (selectedRole !== 'all' && ra.actorRole !== selectedRole) return false;
+            if (selectedStatus !== 'all' && ra.status !== selectedStatus) return false;
+            return true;
+          });
+
+          const featureUserStories = (feature.userStories || []).filter(us => {
+            if (selectedRole !== 'all' && us.actorRole !== selectedRole) return false;
+            if (selectedStatus !== 'all' && us.status !== selectedStatus) return false;
+            return true;
+          });
+
+          const totalSubs = subFeatures.length;
+          const doneSubs = subFeatures.filter(s => s.status === 'implemented').length;
 
           return (
             <div
               key={feature.id}
-              className="bg-[#0f172a] border border-slate-800/80 rounded-2xl p-5 shadow-lg space-y-4"
+              className="bg-[#0f172a] border border-slate-800/90 rounded-2xl p-6 shadow-xl space-y-6"
             >
               {/* Feature Header */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider bg-slate-800 text-indigo-400 border border-slate-700">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2.5">
+                    <span className="px-2.5 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider bg-slate-800 text-indigo-400 border border-slate-700">
                       {feature.category}
                     </span>
-                    <h2 className="text-lg font-bold text-white tracking-tight">{feature.title}</h2>
+                    <h2 className="text-xl font-bold text-white tracking-tight">{feature.title}</h2>
+                    <span
+                      className={`px-2 py-0.5 rounded text-[10px] font-mono font-semibold uppercase tracking-wider ${
+                        feature.status === 'completed'
+                          ? 'bg-emerald-950 text-emerald-400 border border-emerald-800'
+                          : feature.status === 'in_progress'
+                          ? 'bg-amber-950 text-amber-400 border border-amber-800'
+                          : 'bg-slate-800 text-slate-400 border border-slate-700'
+                      }`}
+                    >
+                      {feature.status}
+                    </span>
                   </div>
                   {feature.description && (
-                    <p className="text-xs text-slate-400 mt-1">{feature.description}</p>
+                    <p className="text-xs text-slate-400 leading-relaxed max-w-3xl">
+                      {feature.description}
+                    </p>
                   )}
                 </div>
 
@@ -179,145 +262,310 @@ export const ProgressDashboard: React.FC<Props> = ({ data }) => {
                 <div className="flex items-center gap-3 shrink-0">
                   <div className="text-right">
                     <div className="text-xs font-semibold text-slate-300">
-                      {doneFeatTasks}/{totalFeatTasks} Tasks
+                      {doneSubs}/{totalSubs} Specs Done
                     </div>
                     <div className="text-[10px] text-slate-500 font-mono">{feature.progress}% completed</div>
                   </div>
-                  <div className="w-20 h-1.5 bg-slate-800 rounded-full overflow-hidden border border-slate-700">
+                  <div className="w-24 h-2 bg-slate-800 rounded-full overflow-hidden border border-slate-700">
                     <div
-                      className="h-full bg-emerald-500 rounded-full transition-all"
+                      className="h-full bg-emerald-500 rounded-full transition-all duration-500"
                       style={{ width: `${feature.progress}%` }}
                     />
                   </div>
                 </div>
               </div>
 
-              {/* Tasks List */}
-              {featureTasks.length === 0 ? (
-                <div className="py-6 text-center text-xs text-slate-500">
-                  No matching tasks under this feature.
+              {/* Sub-Features List */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                    <span>📦</span> Sub-Features & Capabilities ({filteredSubFeatures.length})
+                  </h3>
+                  <span className="text-[11px] text-slate-500 font-mono">
+                    Managed by AI Agent
+                  </span>
                 </div>
-              ) : (
-                <div className="grid grid-cols-1 gap-3">
-                  {featureTasks.map(task => {
-                    const isDone = task.status === 'done';
-                    const isInProgress = task.status === 'in_progress';
 
-                    return (
-                      <div
-                        key={task.id}
-                        className={`group relative rounded-xl border p-4 transition-colors ${
-                          isDone
-                            ? 'bg-[#090d16]/80 border-slate-800/80 opacity-85'
-                            : isInProgress
-                            ? 'bg-[#0d131f] border-amber-500/40'
-                            : 'bg-[#0d131f] border-slate-800'
-                        }`}
-                      >
-                        <div className="flex items-start gap-3">
-                          {/* AI-Managed Read-Only Status Glyph */}
-                          <div
-                            title={isDone ? 'Completed by AI Agent' : isInProgress ? 'In Progress by AI Agent' : 'Pending AI Task'}
-                            className={`w-5 h-5 rounded border flex items-center justify-center font-mono font-bold text-xs mt-0.5 shrink-0 select-none ${
-                              isDone
-                                ? 'bg-emerald-950 border-emerald-600/60 text-emerald-400'
-                                : isInProgress
-                                ? 'bg-amber-950 border-amber-600/60 text-amber-400'
-                                : 'bg-[#090d16] border-slate-700 text-transparent'
-                            }`}
-                          >
-                            {isDone ? '✓' : isInProgress ? '•' : ''}
-                          </div>
+                {filteredSubFeatures.length === 0 ? (
+                  <div className="py-6 text-center text-xs text-slate-500 bg-[#090d16]/50 rounded-xl border border-slate-800/60">
+                    No matching sub-features under this feature.
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 gap-3.5">
+                    {filteredSubFeatures.map(sf => {
+                      const isDone = sf.status === 'implemented';
+                      const isInProgress = sf.status === 'in_progress';
+                      const isMissing = sf.status === 'missing';
+                      const isExpanded = expandedDetails[sf.id] !== false; // expanded by default
 
-                          {/* Task Body */}
-                          <div className="flex-1 space-y-2.5">
-                            <div className="flex flex-wrap items-center justify-between gap-2">
-                              <div className="flex items-center gap-2">
-                                <span className="font-mono text-[11px] text-slate-400 bg-slate-800 px-1.5 py-0.5 rounded border border-slate-700">
-                                  {task.id}
-                                </span>
-                                <h3
-                                  className={`text-sm font-semibold text-white ${
-                                    isDone ? 'line-through text-slate-400' : ''
-                                  }`}
-                                >
-                                  {task.title}
-                                </h3>
-                              </div>
-
-                              <div className="flex items-center gap-1.5">
-                                {task.actorRole && (
-                                  <span className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-slate-800 text-slate-300">
-                                    👤 {task.actorRole}
-                                  </span>
-                                )}
-                                <span
-                                  className={`px-2 py-0.5 rounded text-[10px] font-mono font-semibold uppercase tracking-wider ${
-                                    isDone
-                                      ? 'bg-emerald-950 text-emerald-400 border border-emerald-800'
-                                      : isInProgress
-                                      ? 'bg-amber-950 text-amber-400 border border-amber-800'
-                                      : 'bg-slate-800 text-slate-400 border border-slate-700'
-                                  }`}
-                                >
-                                  {task.status.replace('_', ' ')}
-                                </span>
-                              </div>
+                      return (
+                        <div
+                          key={sf.id}
+                          className={`rounded-xl border p-4.5 transition-all ${
+                            isDone
+                              ? 'bg-[#090d16]/80 border-slate-800/90'
+                              : isInProgress
+                              ? 'bg-[#0d131f] border-amber-500/50 shadow-md shadow-amber-500/5'
+                              : 'bg-[#0d131f] border-rose-500/40 shadow-md shadow-rose-500/5'
+                          }`}
+                        >
+                          <div className="flex items-start gap-3">
+                            {/* AI-Managed Read-Only Status Glyph */}
+                            <div
+                              title={
+                                isDone
+                                  ? 'Implemented capability'
+                                  : isInProgress
+                                  ? 'Active in-progress implementation'
+                                  : 'Missing architectural capability / gap'
+                              }
+                              className={`w-6 h-6 rounded-lg border flex items-center justify-center font-mono font-bold text-xs mt-0.5 shrink-0 select-none ${
+                                isDone
+                                  ? 'bg-emerald-950 border-emerald-600/70 text-emerald-400'
+                                  : isInProgress
+                                  ? 'bg-amber-950 border-amber-600/70 text-amber-400 animate-pulse'
+                                  : 'bg-rose-950 border-rose-600/70 text-rose-400'
+                              }`}
+                            >
+                              {isDone ? '✓' : isInProgress ? '•' : '!'}
                             </div>
 
-                            {/* The 4 Core Pillars: Why, How, Where, When */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs pt-1">
-                              {/* Why */}
-                              <div className="bg-[#090d16]/70 border border-slate-800/80 rounded-lg p-2.5 flex items-start gap-2">
-                                <span className="text-sm">🎯</span>
-                                <div>
-                                  <div className="text-[10px] uppercase font-bold text-indigo-400 tracking-wider">
-                                    Why
-                                  </div>
-                                  <div className="text-slate-300 mt-0.5 leading-relaxed">{task.why}</div>
+                            {/* Sub-Feature Body */}
+                            <div className="flex-1 space-y-3">
+                              <div className="flex flex-wrap items-center justify-between gap-2">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-mono text-[11px] text-slate-400 bg-slate-800 px-2 py-0.5 rounded border border-slate-700">
+                                    {sf.id}
+                                  </span>
+                                  <h4 className="text-sm font-semibold text-white tracking-tight">
+                                    {sf.title}
+                                  </h4>
+                                </div>
+
+                                <div className="flex items-center gap-2">
+                                  <span
+                                    className={`px-2 py-0.5 rounded text-[10px] font-mono font-semibold uppercase tracking-wider ${
+                                      isDone
+                                        ? 'bg-emerald-950 text-emerald-400 border border-emerald-800'
+                                        : isInProgress
+                                        ? 'bg-amber-950 text-amber-400 border border-amber-800'
+                                        : 'bg-rose-950 text-rose-400 border border-rose-800'
+                                    }`}
+                                  >
+                                    {sf.status.replace('_', ' ')}
+                                  </span>
+                                  <button
+                                    onClick={() => toggleExpand(sf.id)}
+                                    className="text-[11px] font-mono text-slate-400 hover:text-slate-200 px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700"
+                                  >
+                                    {isExpanded ? 'Hide 4 Ws ▲' : 'Show 4 Ws ▼'}
+                                  </button>
                                 </div>
                               </div>
 
-                              {/* How */}
-                              <div className="bg-[#090d16]/70 border border-slate-800/80 rounded-lg p-2.5 flex items-start gap-2">
-                                <span className="text-sm">🛠️</span>
-                                <div>
-                                  <div className="text-[10px] uppercase font-bold text-indigo-400 tracking-wider">
-                                    How
-                                  </div>
-                                  <div className="text-slate-300 mt-0.5 leading-relaxed">{task.how}</div>
-                                </div>
+                              {/* What: Capability Summary */}
+                              <div className="text-xs text-slate-300 leading-relaxed bg-[#090d16]/50 p-2.5 rounded-lg border border-slate-800/80">
+                                <span className="text-[10px] uppercase font-bold text-indigo-400 tracking-wider mr-1.5">
+                                  WHAT:
+                                </span>
+                                {sf.what}
                               </div>
 
-                              {/* Where */}
-                              <div className="bg-[#090d16]/70 border border-slate-800/80 rounded-lg p-2.5 flex items-start gap-2">
-                                <span className="text-sm">📍</span>
-                                <div className="flex-1 truncate">
-                                  <div className="text-[10px] uppercase font-bold text-indigo-400 tracking-wider">
-                                    Where
+                              {/* The 4 W's Detailed Grid */}
+                              {isExpanded && (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 text-xs pt-1">
+                                  {/* Why */}
+                                  <div className="bg-[#090d16]/70 border border-slate-800/90 rounded-lg p-3 flex items-start gap-2.5">
+                                    <span className="text-base">🎯</span>
+                                    <div>
+                                      <div className="text-[10px] uppercase font-bold text-indigo-400 tracking-wider">
+                                        Why (Rationale)
+                                      </div>
+                                      <div className="text-slate-300 mt-0.5 leading-relaxed">{sf.why}</div>
+                                    </div>
                                   </div>
-                                  <div className="text-indigo-300 font-mono text-[11px] mt-0.5 truncate select-all">
-                                    {task.where}
-                                  </div>
-                                </div>
-                              </div>
 
-                              {/* When */}
-                              <div className="bg-[#090d16]/70 border border-slate-800/80 rounded-lg p-2.5 flex items-start gap-2">
-                                <span className="text-sm">⏱️</span>
-                                <div>
-                                  <div className="text-[10px] uppercase font-bold text-indigo-400 tracking-wider">
-                                    When
+                                  {/* How */}
+                                  <div className="bg-[#090d16]/70 border border-slate-800/90 rounded-lg p-3 flex items-start gap-2.5">
+                                    <span className="text-base">🛠️</span>
+                                    <div>
+                                      <div className="text-[10px] uppercase font-bold text-indigo-400 tracking-wider">
+                                        How (Approach)
+                                      </div>
+                                      <div className="text-slate-300 mt-0.5 leading-relaxed">{sf.how}</div>
+                                    </div>
                                   </div>
-                                  <div className="text-slate-300 mt-0.5">{task.when}</div>
+
+                                  {/* Where */}
+                                  <div className="bg-[#090d16]/70 border border-slate-800/90 rounded-lg p-3 flex items-start gap-2.5">
+                                    <span className="text-base">📍</span>
+                                    <div className="flex-1 truncate">
+                                      <div className="text-[10px] uppercase font-bold text-indigo-400 tracking-wider">
+                                        Where (Target Files)
+                                      </div>
+                                      <div className="text-indigo-300 font-mono text-[11px] mt-0.5 truncate select-all">
+                                        {sf.where}
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {/* When */}
+                                  <div className="bg-[#090d16]/70 border border-slate-800/90 rounded-lg p-3 flex items-start gap-2.5">
+                                    <span className="text-base">⏱️</span>
+                                    <div>
+                                      <div className="text-[10px] uppercase font-bold text-indigo-400 tracking-wider">
+                                        When (Phase / Milestone)
+                                      </div>
+                                      <div className="text-slate-300 mt-0.5">{sf.when}</div>
+                                    </div>
+                                  </div>
                                 </div>
-                              </div>
+                              )}
                             </div>
                           </div>
                         </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* What's Missing & Planned Gaps Callout */}
+              {feature.missingDetails && feature.missingDetails.whatsMissing?.length > 0 && (
+                <div className="bg-[#18111e]/90 border border-rose-500/40 rounded-xl p-5 space-y-3 shadow-lg">
+                  <div className="flex items-center gap-2">
+                    <span className="text-rose-400 text-base">⚠️</span>
+                    <h3 className="text-sm font-bold text-white tracking-tight">
+                      What's Missing & Planned Gaps
+                    </h3>
+                    <span className="px-2 py-0.5 rounded text-[10px] font-mono uppercase bg-rose-950 text-rose-300 border border-rose-800">
+                      Planned Milestone: {feature.missingDetails.when}
+                    </span>
+                  </div>
+
+                  <ul className="space-y-1.5 pl-5 list-disc text-xs text-slate-200">
+                    {feature.missingDetails.whatsMissing.map((item, idx) => (
+                      <li key={idx} className="leading-relaxed">
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 border-t border-rose-900/30 text-xs">
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-rose-400 tracking-wider">
+                        Planned Approach (How)
+                      </span>
+                      <p className="text-slate-300 mt-0.5 leading-relaxed">{feature.missingDetails.how}</p>
+                    </div>
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-rose-400 tracking-wider">
+                        Target Files (Where)
+                      </span>
+                      <div className="flex flex-wrap gap-1.5 mt-1">
+                        {feature.missingDetails.where.map((file, idx) => (
+                          <span
+                            key={idx}
+                            className="px-2 py-0.5 rounded bg-slate-900 text-indigo-300 font-mono text-[11px] border border-slate-800 select-all"
+                          >
+                            {file}
+                          </span>
+                        ))}
                       </div>
-                    );
-                  })}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Role-Based Actions & User Stories Tabs */}
+              {(featureRoleActions.length > 0 || featureUserStories.length > 0) && (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 pt-2">
+                  {/* Role-Based Actions */}
+                  {featureRoleActions.length > 0 && (
+                    <div className="bg-[#090d16]/70 border border-slate-800/80 rounded-xl p-4 space-y-2.5">
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                        <span>👤</span> Role-Based Actions ({featureRoleActions.length})
+                      </h4>
+                      <div className="space-y-2">
+                        {featureRoleActions.map(ra => (
+                          <div
+                            key={ra.id}
+                            className="bg-[#0d131f] border border-slate-800/90 rounded-lg p-2.5 flex items-start justify-between gap-3 text-xs"
+                          >
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-2">
+                                <span className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-indigo-950 text-indigo-300 border border-indigo-800">
+                                  {ra.actorRole}
+                                </span>
+                                <span className="font-medium text-white">{ra.action}</span>
+                              </div>
+                              {ra.targetScreenOrEndpoint && (
+                                <div className="text-[11px] font-mono text-slate-400">
+                                  Target: {ra.targetScreenOrEndpoint}
+                                </div>
+                              )}
+                            </div>
+                            <span
+                              className={`px-1.5 py-0.5 rounded text-[9px] font-mono uppercase font-bold shrink-0 ${
+                                ra.status === 'implemented'
+                                  ? 'bg-emerald-950 text-emerald-400 border border-emerald-800'
+                                  : 'bg-rose-950 text-rose-400 border border-rose-800'
+                              }`}
+                            >
+                              {ra.status}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* User Stories */}
+                  {featureUserStories.length > 0 && (
+                    <div className="bg-[#090d16]/70 border border-slate-800/80 rounded-xl p-4 space-y-2.5">
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                        <span>📖</span> User Stories & Acceptance Criteria ({featureUserStories.length})
+                      </h4>
+                      <div className="space-y-2">
+                        {featureUserStories.map(us => (
+                          <div
+                            key={us.id}
+                            className="bg-[#0d131f] border border-slate-800/90 rounded-lg p-3 space-y-2 text-xs"
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-indigo-950 text-indigo-300 border border-indigo-800">
+                                {us.actorRole} Story
+                              </span>
+                              <span
+                                className={`px-1.5 py-0.5 rounded text-[9px] font-mono uppercase font-bold ${
+                                  us.status === 'implemented'
+                                    ? 'bg-emerald-950 text-emerald-400 border border-emerald-800'
+                                    : 'bg-rose-950 text-rose-400 border border-rose-800'
+                                }`}
+                              >
+                                {us.status}
+                              </span>
+                            </div>
+                            <p className="text-slate-200 font-medium leading-relaxed italic">
+                              "{us.story}"
+                            </p>
+                            {us.acceptanceCriteria && us.acceptanceCriteria.length > 0 && (
+                              <div className="pt-1 border-t border-slate-800/80 space-y-1">
+                                <span className="text-[10px] uppercase font-bold text-slate-400">
+                                  Acceptance Criteria:
+                                </span>
+                                <ul className="list-disc pl-4 text-[11px] text-slate-400 space-y-0.5">
+                                  {us.acceptanceCriteria.map((ac, idx) => (
+                                    <li key={idx}>{ac}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

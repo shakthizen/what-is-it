@@ -27,7 +27,7 @@ const program = new Command();
 program
   .name('what-is-it')
   .description('Live Project Memory, Task Tracker & Interactive Wiki for Vibe Coding')
-  .version('1.0.1');
+  .version('1.1.0');
 
 function askQuestion(query: string): Promise<string> {
   if (!process.stdin.isTTY) return Promise.resolve('');
@@ -336,8 +336,9 @@ program
 
 program
   .command('import <file>')
-  .description('Import project data from a JSON file into .what-is-it.bin')
-  .action((filePath: string) => {
+  .description('Import project data from a JSON file into .what-is-it.bin and clean up scratch files')
+  .option('--no-clean', 'Do not remove scratch state file after import')
+  .action((filePath: string, options: { clean?: boolean }) => {
     const cwd = process.cwd();
     const fullPath = path.resolve(cwd, filePath);
     if (!fs.existsSync(fullPath)) {
@@ -350,6 +351,26 @@ program
       const incoming = JSON.parse(raw) as any;
       saveProjectData(cwd, incoming);
       console.log(formatCavemanSuccess('PROJECT DATA IMPORTED', path.basename(filePath)));
+
+      // Auto-remove scratch state file if located in scratch or has scratch in name
+      const isScratch = filePath.includes('scratch') || fullPath.includes('/scratch/');
+      if (isScratch && options.clean !== false) {
+        try {
+          fs.unlinkSync(fullPath);
+          console.log(pc.dim(`✔ Cleaned up scratch state file: ${filePath}`));
+
+          const parentDir = path.dirname(fullPath);
+          if (path.basename(parentDir) === 'scratch') {
+            const remaining = fs.readdirSync(parentDir);
+            if (remaining.length === 0) {
+              fs.rmdirSync(parentDir);
+              console.log(pc.dim(`✔ Pruned empty scratch directory`));
+            }
+          }
+        } catch {
+          // Ignore cleanup error
+        }
+      }
     } catch (err) {
       console.error(formatCavemanError(`Import failed: ${(err as Error).message}`));
       process.exit(1);

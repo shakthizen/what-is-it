@@ -67,9 +67,9 @@ export const Navbar: React.FC<NavbarProps> = ({
               : 'text-slate-400 hover:text-slate-200'
           }`}
         >
-          <span>📊</span>
-          <span className="hidden sm:inline">Tasks & Progress</span>
-          <span className="sm:hidden">Tasks</span>
+          <span>📋</span>
+          <span className="hidden sm:inline">Feature Specs & Gaps</span>
+          <span className="sm:hidden">Specs</span>
         </button>
 
         <button

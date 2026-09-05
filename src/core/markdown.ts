@@ -8,20 +8,28 @@ export function renderProgressBar(percentage: number, length: number = 20): stri
 }
 
 export function generateMarkdownOverview(data: ProjectData): string {
-  const { meta, features, tasks, flows } = data;
-  const totalTasks = tasks.length;
-  const completedTasks = tasks.filter(t => t.status === 'done').length;
-  const inProgressTasks = tasks.filter(t => t.status === 'in_progress').length;
-  const todoTasks = tasks.filter(t => t.status === 'todo').length;
+  const { meta, features, tasks = [], flows = [] } = data;
+  const allSubFeatures = features.flatMap(f => f.subFeatures || []);
+  const hasSubFeatures = allSubFeatures.length > 0;
 
   const bar = renderProgressBar(meta.overallProgress, 24);
 
-  let md = `# ${meta.name} — Project Overview\n\n`;
+  let md = `# ${meta.name} — Architectural Spec & Live Memory\n\n`;
   md += `> ${meta.description}\n\n`;
 
-  md += `### Live Progress\n`;
+  md += `### Live Completion\n`;
   md += `\`\`\`text\n${bar}\n`;
-  md += `Total Tasks: ${totalTasks} | Done: ${completedTasks} | In Progress: ${inProgressTasks} | Pending: ${todoTasks}\n`;
+  if (hasSubFeatures) {
+    const doneCount = allSubFeatures.filter(s => s.status === 'implemented').length;
+    const inProgCount = allSubFeatures.filter(s => s.status === 'in_progress').length;
+    const missingCount = allSubFeatures.filter(s => s.status === 'missing').length;
+    md += `Sub-Features: ${allSubFeatures.length} Total | ${doneCount} Implemented | ${inProgCount} In Progress | ${missingCount} Missing Gaps\n`;
+  } else {
+    const completedTasks = tasks.filter(t => t.status === 'done').length;
+    const inProgressTasks = tasks.filter(t => t.status === 'in_progress').length;
+    const todoTasks = tasks.filter(t => t.status === 'todo').length;
+    md += `Tasks: ${tasks.length} Total | ${completedTasks} Done | ${inProgressTasks} In Progress | ${todoTasks} Pending\n`;
+  }
   md += `\`\`\`\n\n`;
 
   md += `| Attribute | Details |\n`;
@@ -30,49 +38,50 @@ export function generateMarkdownOverview(data: ProjectData): string {
   md += `| **Frameworks / Stack** | ${meta.frameworks.map(f => `\`${f}\``).join(', ') || 'Not specified'} |\n`;
   md += `| **Version** | \`v${meta.version}\` |\n`;
   md += `| **Last Updated** | ${new Date(meta.updatedAt).toLocaleString()} |\n`;
-  md += `| **Interactive Dashboard** | Run \`npx @shakthizen/what-is-it\` to view full visual UI & Wiki |\n\n`;
+  md += `| **Interactive Dashboard** | Run \`npx @shakthizen/what-is-it\` to open visual Spec Explorer & Graph |\n\n`;
 
-  md += `## Features & Status\n\n`;
-  md += `| Feature | Status | Progress | Tasks Done |\n`;
-  md += `| :--- | :--- | :--- | :--- |\n`;
+  md += `## Features & Sub-Feature Specs\n\n`;
   for (const f of features) {
-    const fTasks = tasks.filter(t => t.featureId === f.id);
-    const fDone = fTasks.filter(t => t.status === 'done').length;
     const statusIcon = f.status === 'completed' ? '✅ Completed' : f.status === 'in_progress' ? '🟡 In Progress' : '⚪ Planned';
-    md += `| **${f.title}** | ${statusIcon} | \`${f.progress}%\` | ${fDone}/${fTasks.length} |\n`;
-  }
-  md += `\n`;
+    md += `### ${f.title} (${statusIcon} — \`${f.progress}%\`)\n`;
+    if (f.description) md += `*${f.description}*\n\n`;
 
-  // Active / in-progress tasks
-  const activeTasks = tasks.filter(t => t.status === 'in_progress' || (t.status === 'todo' && t.priority === 'urgent'));
-  if (activeTasks.length > 0) {
-    md += `## Current Focus (Active & Urgent Tasks)\n\n`;
-    for (const t of activeTasks) {
-      const icon = t.status === 'in_progress' ? '⚡' : '🔥';
-      md += `### ${icon} ${t.title} (\`${t.id}\`)\n`;
-      md += `- **Why**: ${t.why}\n`;
-      md += `- **Where**: \`${t.where}\`\n`;
-      md += `- **How**: ${t.how}\n`;
-      md += `- **When**: ${t.when}\n\n`;
+    if (f.subFeatures && f.subFeatures.length > 0) {
+      md += `| Status | Sub-Feature | Capability (What) | Target Files (Where) | Phase (When) |\n`;
+      md += `| :--- | :--- | :--- | :--- | :--- |\n`;
+      for (const sf of f.subFeatures) {
+        const sIcon = sf.status === 'implemented' ? '🟢 Implemented' : sf.status === 'in_progress' ? '🟡 Active' : '🔴 Missing';
+        md += `| ${sIcon} | **${sf.title}** | ${sf.what} | \`${sf.where}\` | ${sf.when} |\n`;
+      }
+      md += `\n`;
+    }
+
+    if (f.missingDetails && f.missingDetails.whatsMissing?.length > 0) {
+      md += `> [!WARNING]\n`;
+      md += `> **What's Missing & Planned Gaps**:\n`;
+      for (const m of f.missingDetails.whatsMissing) {
+        md += `> - ${m}\n`;
+      }
+      md += `> **Planned Approach**: ${f.missingDetails.how} (${f.missingDetails.when})\n\n`;
     }
   }
 
   // Visual User Flows summary
   if (flows.length > 0) {
-    md += `## Visual User Flows (${flows.length})\n\n`;
+    md += `## Visual User Journeys & Wireframes (${flows.length})\n\n`;
     for (const flow of flows) {
-      md += `- **${flow.title}** (Role: \`${flow.actorRole}\`): ${flow.description} — *${flow.nodes.length} screen nodes mapped in interactive graph*\n`;
+      md += `- **${flow.title}** (Role: \`${flow.actorRole}\`): ${flow.description} — *${flow.nodes.length} screen frames mapped*\n`;
     }
     md += `\n`;
   }
 
   md += `---\n\n`;
   md += `### Guidelines for Humans & AI Agents\n`;
-  md += `- **For Humans**: Run \`npx @shakthizen/what-is-it\` in your terminal to launch the interactive UI dashboard, right-rail wiki, and SVG React Flow graph.\n`;
-  md += `- **For Agents**:\n`;
+  md += `- **For Humans**: Run \`npx @shakthizen/what-is-it\` in terminal to launch interactive Feature Spec Explorer, Design System Drawer, and SVG Flow Graph.\n`;
+  md += `- **For AI Agents**:\n`;
   md += `  1. Check status at session start: \`npx @shakthizen/what-is-it status\`\n`;
-  md += `  2. When finishing work, mark done: \`npx @shakthizen/what-is-it task done <task-id>\`\n`;
-  md += `  3. When adding tasks, provide the 4 W's: \`npx @shakthizen/what-is-it task add --feature "<id>" --title "..." --why "..." --how "..." --where "..." --when "..."\`\n`;
+  md += `  2. Read active focus and missing planned gaps before making assumptions\n`;
+  md += `  3. Keep memory fresh and clean up temporary state after updates\n`;
   md += `\n*Auto-generated by \`@shakthizen/what-is-it\` live memory system.*\n`;
 
   return md;
