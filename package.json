@@ -19,6 +19,7 @@
     "build:pages": "node scripts/export-static.js",
     "build": "pnpm build:web && pnpm build:cli && pnpm build:pages",
     "test": "tsx --test 'test/**/*.test.ts'",
+    "publish:local": "pnpm build && pnpm test && npm publish --access public",
     "start": "node ./bin/what-is-it.js"
   },
   "keywords": [
