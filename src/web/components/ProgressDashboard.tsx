@@ -13,7 +13,7 @@ interface Props {
   onToggleTask?: (taskId: string) => void;
 }
 
-export const ProgressDashboard: React.FC<Props> = ({ data }) => {
+export const ProgressDashboard: React.FC<Props> = ({ data, onToggleTask }) => {
   const { meta, features = [], tasks = [] } = data;
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
@@ -429,6 +429,37 @@ export const ProgressDashboard: React.FC<Props> = ({ data }) => {
                   </div>
                 )}
               </div>
+
+              {/* Actionable Task Checklist (mirrors sub-features 1:1; check one off here or via
+                  `npx what-is-it task done <id>` and the linked sub-feature/progress updates) */}
+              {onToggleTask && tasks.filter(t => t.featureId === feature.id).length > 0 && (
+                <div className="space-y-2 pt-1">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                    <span>✅</span> Tasks ({tasks.filter(t => t.featureId === feature.id).length})
+                  </h3>
+                  <div className="space-y-1.5">
+                    {tasks
+                      .filter(t => t.featureId === feature.id)
+                      .map(t => (
+                        <label
+                          key={t.id}
+                          className="flex items-center gap-2.5 bg-[#090d16]/60 border border-slate-800/80 rounded-lg px-3 py-2 text-xs cursor-pointer hover:border-slate-700"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={t.status === 'done'}
+                            onChange={() => onToggleTask(t.id)}
+                            className="w-3.5 h-3.5 accent-emerald-500 shrink-0"
+                          />
+                          <span className={`flex-1 ${t.status === 'done' ? 'text-slate-500 line-through' : 'text-slate-200'}`}>
+                            {t.title}
+                          </span>
+                          <span className="font-mono text-[10px] text-slate-500 shrink-0">{t.id}</span>
+                        </label>
+                      ))}
+                  </div>
+                </div>
+              )}
 
               {/* What's Missing & Planned Gaps Callout */}
               {feature.missingDetails && feature.missingDetails.whatsMissing?.length > 0 && (

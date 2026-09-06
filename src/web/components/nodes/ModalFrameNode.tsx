@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Handle, Position } from '@xyflow/react';
 import type { FlowNodeData } from '../../types.js';
+import { sanitizeSvgMarkup } from '../../sanitizeSvg.js';
 
 interface Props {
   data: FlowNodeData;
@@ -8,21 +9,32 @@ interface Props {
 }
 
 export const ModalFrameNode: React.FC<Props> = ({ data, selected }) => {
-  const { title, subtitle, actorRole, visualLayout } = data;
+  const { title, subtitle, actorRole, visualLayout, mockupSvg } = data;
   const contentBlocks = visualLayout?.contentBlocks || [{ type: 'form', label: 'Input Fields' }];
+  const safeMockup = useMemo(() => (mockupSvg ? sanitizeSvgMarkup(mockupSvg) : null), [mockupSvg]);
+
+  const frameClassName = `group relative rounded-xl transition-all duration-200 cursor-pointer ${
+    selected ? 'ring-2 ring-indigo-500 shadow-2xl shadow-indigo-500/20' : 'hover:ring-1 hover:ring-indigo-400/50'
+  }`;
+
+  if (safeMockup) {
+    return (
+      <div className={frameClassName} style={{ width: 280 }}>
+        <Handle type="target" position={Position.Left} className="!bg-indigo-500" />
+        <div
+          className="bg-[#0f172a]/95 border-2 border-indigo-500/40 rounded-xl overflow-hidden shadow-2xl backdrop-blur-md [&_svg]:w-full [&_svg]:h-auto [&_svg]:block"
+          dangerouslySetInnerHTML={{ __html: safeMockup }}
+        />
+        <Handle type="source" position={Position.Right} className="!bg-indigo-500" />
+      </div>
+    );
+  }
 
   return (
-    <div
-      className={`group relative rounded-xl transition-all duration-200 cursor-pointer ${
-        selected
-          ? 'ring-2 ring-indigo-500 shadow-2xl shadow-indigo-500/20'
-          : 'hover:ring-1 hover:ring-indigo-400/50'
-      }`}
-      style={{ width: 280 }}
-    >
+    <div className={frameClassName} style={{ width: 280 }}>
       <Handle type="target" position={Position.Left} className="!bg-indigo-500" />
 
-      {/* Modal Frame with Frosted Backdrop effect */}
+      {/* Generic fallback wireframe (used when the agent hasn't supplied a real mockupSvg) */}
       <div className="bg-[#0f172a]/95 border-2 border-indigo-500/40 rounded-xl overflow-hidden shadow-2xl backdrop-blur-md text-xs">
         {/* Modal Header */}
         <div className="bg-[#1e293b]/90 px-3 py-2 border-b border-slate-700/80 flex items-center justify-between">

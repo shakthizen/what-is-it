@@ -31,9 +31,18 @@ export const App: React.FC = () => {
   const [activeTab, setActiveTabState] = useState<TabType>(getInitialTab);
   const [isConnected, setIsConnected] = useState<boolean>(false);
   const [isStaticMode, setIsStaticMode] = useState<boolean>(false);
+  // Whether the user has left the marketing landing page for the dashboard, in static/GitHub
+  // Pages mode. This must be React state, not re-derived from window.location.hash on every
+  // render: switching tabs (setActiveTab) overwrites the hash to plain tab names like '#wiki',
+  // which no longer "looks like" a docs hash — deriving this from the hash alone bounced the
+  // user back to the landing page on every tab click after the first.
+  const [hasEnteredDocs, setHasEnteredDocs] = useState<boolean>(
+    () => typeof window !== 'undefined' && window.location.hash.startsWith('#docs')
+  );
 
   const setActiveTab = (tab: TabType) => {
     setActiveTabState(tab);
+    setHasEnteredDocs(true);
     try {
       window.location.hash = tab;
     } catch {
@@ -168,7 +177,11 @@ export const App: React.FC = () => {
   const handleToggleTask = async (taskId: string) => {
     if (!data) return;
 
-    // Optimistic UI update
+    // Optimistic UI update for the checkbox itself only. Overall/feature progress is
+    // driven server-side by SubFeature.status (see computeProgress in core/storage.ts),
+    // which a client-side tasks-done/total calculation cannot reproduce — so we deliberately
+    // leave `meta` untouched here and let the SSE-triggered refetch (or the static-mode
+    // reload below) supply the authoritative numbers moments later.
     const updatedTasks = data.tasks.map(t => {
       if (t.id === taskId) {
         const newStatus = t.status === 'done' ? 'todo' : 'done';
@@ -181,20 +194,7 @@ export const App: React.FC = () => {
       return t;
     });
 
-    const doneCount = updatedTasks.filter(t => t.status === 'done').length;
-    const newProgress = Math.round((doneCount / updatedTasks.length) * 100);
-
-    const updatedData: ProjectData = {
-      ...data,
-      tasks: updatedTasks,
-      meta: {
-        ...data.meta,
-        overallProgress: newProgress,
-        updatedAt: new Date().toISOString()
-      }
-    };
-
-    setData(updatedData);
+    setData({ ...data, tasks: updatedTasks });
 
     // If static mode, persist to localStorage
     if (isStaticMode) {
@@ -208,16 +208,21 @@ export const App: React.FC = () => {
       } catch {
         // Ignore
       }
+      // applyLocalOverrides recomputes progress from the flat task list, which is the best
+      // this static (no-server) mode can do without a real SubFeature-aware backend.
+      setData(applyLocalOverrides({ ...data, tasks: updatedTasks }));
       return;
     }
 
-    // Otherwise, sync to micro-server
+    // Otherwise, sync to micro-server, which also flips the linked SubFeature and
+    // recomputes real progress, then re-fetch so the UI reflects the authoritative state.
     try {
       await fetch('/api/task/toggle', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ taskId })
       });
+      await fetchProjectData();
     } catch (err) {
       console.warn('Failed to sync toggle to server, falling back to local storage:', err);
     }
@@ -252,15 +257,14 @@ export const App: React.FC = () => {
     );
   }
 
-  const isDocsHash = typeof window !== 'undefined' && window.location.hash.startsWith('#docs');
-  const isLandingMode = (isStaticMode || (typeof window !== 'undefined' && window.location.hostname.includes('github.io'))) && !isDocsHash;
+  const isLandingMode = (isStaticMode || (typeof window !== 'undefined' && window.location.hostname.includes('github.io'))) && !hasEnteredDocs;
 
   if (isLandingMode) {
     return (
       <LandingPage
         data={data}
         onOpenDocs={() => {
-          window.location.hash = '#docs';
+          setHasEnteredDocs(true);
           setActiveTab('tasks');
         }}
       />
@@ -281,7 +285,7 @@ export const App: React.FC = () => {
       {/* Main Content Pane */}
       <main className="flex-1">
         {activeTab === 'tasks' && (
-          <ProgressDashboard data={data} />
+          <ProgressDashboard data={data} onToggleTask={handleToggleTask} />
         )}
         {activeTab === 'wiki' && (
           <WikiView wiki={data.wiki} />

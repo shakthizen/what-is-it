@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Handle, Position } from '@xyflow/react';
 import type { FlowNodeData } from '../../types.js';
+import { sanitizeSvgMarkup } from '../../sanitizeSvg.js';
 
 interface Props {
   data: FlowNodeData;
@@ -8,7 +9,7 @@ interface Props {
 }
 
 export const DesktopFrameNode: React.FC<Props> = ({ data, selected }) => {
-  const { title, subtitle, actorRole, uiGuidelines, visualLayout } = data;
+  const { title, subtitle, actorRole, uiGuidelines, visualLayout, mockupSvg } = data;
   const navItems = visualLayout?.navItems || ['Home', 'Docs', 'Settings'];
   const sidebarItems = visualLayout?.sidebarItems || ['Dashboard', 'Projects', 'Analytics'];
   const contentBlocks = visualLayout?.contentBlocks || [
@@ -16,18 +17,32 @@ export const DesktopFrameNode: React.FC<Props> = ({ data, selected }) => {
     { type: 'card', label: 'Primary Content Canvas' }
   ];
 
+  // When the agent supplied a real per-screen mockup, render that instead of the generic
+  // built-in wireframe below — sanitized since it came through untrusted import/API data.
+  const safeMockup = useMemo(() => (mockupSvg ? sanitizeSvgMarkup(mockupSvg) : null), [mockupSvg]);
+
+  const frameClassName = `group relative rounded-xl transition-all duration-200 cursor-pointer ${
+    selected ? 'ring-2 ring-indigo-500 shadow-2xl shadow-indigo-500/20' : 'hover:ring-1 hover:ring-indigo-400/50'
+  }`;
+
+  if (safeMockup) {
+    return (
+      <div className={frameClassName} style={{ width: 340 }}>
+        <Handle type="target" position={Position.Left} className="!bg-indigo-500" />
+        <div
+          className="bg-[#0f172a] border border-slate-700/80 rounded-xl overflow-hidden shadow-xl [&_svg]:w-full [&_svg]:h-auto [&_svg]:block"
+          dangerouslySetInnerHTML={{ __html: safeMockup }}
+        />
+        <Handle type="source" position={Position.Right} className="!bg-indigo-500" />
+      </div>
+    );
+  }
+
   return (
-    <div
-      className={`group relative rounded-xl transition-all duration-200 cursor-pointer ${
-        selected
-          ? 'ring-2 ring-indigo-500 shadow-2xl shadow-indigo-500/20'
-          : 'hover:ring-1 hover:ring-indigo-400/50'
-      }`}
-      style={{ width: 340 }}
-    >
+    <div className={frameClassName} style={{ width: 340 }}>
       <Handle type="target" position={Position.Left} className="!bg-indigo-500" />
 
-      {/* SVG Desktop Browser Frame */}
+      {/* Generic fallback wireframe (used when the agent hasn't supplied a real mockupSvg) */}
       <div className="bg-[#0f172a] border border-slate-700/80 rounded-xl overflow-hidden shadow-xl text-xs">
         {/* Browser Top Bar */}
         <div className="bg-[#1e293b] px-3 py-2 border-b border-slate-700 flex items-center justify-between">

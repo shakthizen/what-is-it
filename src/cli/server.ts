@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import open from 'open';
 import pc from 'picocolors';
 import { loadProjectData, saveProjectData, DEFAULT_FILE_NAME } from '../core/storage.js';
-import type { ProjectData } from '../core/schema.js';
+import { validateProjectData } from '../core/schema.js';
 
 const MIME_TYPES: Record<string, string> = {
   '.html': 'text/html; charset=utf-8',
@@ -69,14 +69,35 @@ export function startServer(rootDir: string, port: number = 3456, shouldOpen: bo
     }
   });
 
+  // Only this project's own web bundle (served same-origin from this port) may call the
+  // API. Any other Origin/Referer — e.g. a page open in another tab, or a malicious site
+  // relying on the browser having a local dashboard running — is rejected outright. This
+  // closes the CSRF/data-exfiltration hole a wildcard `Access-Control-Allow-Origin: *`
+  // combined with an unauthenticated write API would otherwise open on localhost.
+  function isTrustedOrigin(req: http.IncomingMessage): boolean {
+    const origin = req.headers.origin;
+    const referer = req.headers.referer;
+    const header = origin || referer;
+    // No Origin/Referer at all means a same-origin navigation or a non-browser client
+    // (curl, the CLI itself) — allow it. Browsers always send Origin on cross-origin fetch.
+    if (!header) return true;
+    try {
+      const url = new URL(header);
+      return (url.hostname === 'localhost' || url.hostname === '127.0.0.1') && Number(url.port) === port;
+    } catch {
+      return false;
+    }
+  }
+
   const server = http.createServer((req, res) => {
     const parsedUrl = new URL(req.url || '/', `http://localhost:${port}`);
     const pathname = parsedUrl.pathname;
 
-    // Enable CORS
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    if (pathname.startsWith('/api/') && !isTrustedOrigin(req)) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Cross-origin requests to the local what-is-it API are not allowed.' }));
+      return;
+    }
 
     if (req.method === 'OPTIONS') {
       res.writeHead(204);
@@ -119,7 +140,10 @@ export function startServer(rootDir: string, port: number = 3456, shouldOpen: bo
       req.on('data', chunk => { body += chunk; });
       req.on('end', () => {
         try {
-          const incoming = JSON.parse(body) as ProjectData;
+          const incoming = JSON.parse(body);
+          if (!validateProjectData(incoming)) {
+            throw new Error('Payload does not match the expected project data shape');
+          }
           saveProjectData(rootDir, incoming);
           broadcastUpdate();
           res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -142,7 +166,7 @@ export function startServer(rootDir: string, port: number = 3456, shouldOpen: bo
           const current = loadProjectData(rootDir);
           if (!current) throw new Error('Project data not found');
 
-          const task = current.tasks.find(t => t.id === taskId);
+          const task = current.tasks?.find(t => t.id === taskId);
           if (!task) throw new Error(`Task ${taskId} not found`);
 
           task.status = task.status === 'done' ? 'todo' : 'done';
@@ -150,6 +174,19 @@ export function startServer(rootDir: string, port: number = 3456, shouldOpen: bo
             task.completedAt = new Date().toISOString();
           } else {
             delete task.completedAt;
+          }
+
+          // Tasks are a legacy mirror of SubFeatures. Progress is computed from
+          // SubFeature.status, so without this the checkbox would flip visually
+          // but never move the actual completion percentage.
+          if (task.subFeatureId) {
+            for (const feature of current.features) {
+              const sub = feature.subFeatures?.find(sf => sf.id === task.subFeatureId);
+              if (sub) {
+                sub.status = task.status === 'done' ? 'implemented' : 'missing';
+                break;
+              }
+            }
           }
 
           saveProjectData(rootDir, current);

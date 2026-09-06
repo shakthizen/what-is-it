@@ -2,6 +2,35 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { marked } from 'marked';
 import type { WikiPage } from '../types.js';
 
+// Wiki content ultimately comes from `.what-is-it.bin`, which agents write to via
+// `import`/the HTTP API. Treat it as untrusted: escape raw HTML tokens outright (marked
+// passes inline/block HTML through verbatim by default) and restrict link/image URLs to
+// safe protocols before this ever reaches dangerouslySetInnerHTML.
+function escapeHtml(input: string): string {
+  return input
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+const SAFE_URL_PROTOCOLS = new Set(['http:', 'https:', 'mailto:']);
+
+function sanitizeUrl(href: string): string {
+  const trimmed = href.trim();
+  if (trimmed.startsWith('#') || trimmed.startsWith('/') || trimmed.startsWith('./') || trimmed.startsWith('../')) {
+    return escapeHtml(trimmed);
+  }
+  try {
+    const url = new URL(trimmed, 'https://placeholder.invalid');
+    if (SAFE_URL_PROTOCOLS.has(url.protocol)) return escapeHtml(trimmed);
+  } catch {
+    // Not a parseable absolute URL — fall through to reject
+  }
+  return '#';
+}
+
 interface Props {
   wiki: WikiPage[];
 }
@@ -42,12 +71,26 @@ export const WikiView: React.FC<Props> = ({ wiki }) => {
     renderer.heading = ({ text, depth }) => {
       const rawText = text.replace(/<[^>]*>/g, '');
       const id = rawText.toLowerCase().replace(/[^\w\s-]/g, '').replace(/\s+/g, '-');
+      const safeText = escapeHtml(rawText);
       return `<h${depth} id="${id}" class="scroll-mt-20 group relative flex items-center font-bold tracking-tight text-white ${
         depth === 2 ? 'text-xl mt-8 mb-4 pb-2 border-b border-slate-800' : 'text-base mt-6 mb-3'
       }">
-        <span>${text}</span>
+        <span>${safeText}</span>
         <a href="#${id}" class="ml-2 text-slate-500 opacity-0 group-hover:opacity-100 hover:text-indigo-400 text-sm transition-opacity">#</a>
       </h${depth}>`;
+    };
+    // Raw HTML embedded in markdown source (inline or block) is untrusted — escape it
+    // instead of passing it through, which is marked's insecure default behavior.
+    renderer.html = ({ text }) => escapeHtml(text);
+    renderer.link = ({ href, title, text }) => {
+      const safeHref = sanitizeUrl(href);
+      const titleAttr = title ? ` title="${escapeHtml(title)}"` : '';
+      return `<a href="${safeHref}"${titleAttr} rel="noopener noreferrer">${escapeHtml(text)}</a>`;
+    };
+    renderer.image = ({ href, title, text }) => {
+      const safeHref = sanitizeUrl(href);
+      const titleAttr = title ? ` title="${escapeHtml(title)}"` : '';
+      return `<img src="${safeHref}" alt="${escapeHtml(text)}"${titleAttr} />`;
     };
 
     return marked(activePage.content, { renderer, gfm: true, breaks: true }) as string;

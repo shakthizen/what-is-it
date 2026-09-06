@@ -6,8 +6,9 @@ import {
   projectExists,
   saveProjectData,
   scanProject,
-  synthesizeProjectData
-} from "../chunk-J6DZW67A.js";
+  synthesizeProjectData,
+  validateProjectData
+} from "../chunk-5UP6YMNR.js";
 
 // src/cli/index.ts
 import { Command } from "commander";
@@ -80,13 +81,15 @@ This project uses \`@shakthizen/what-is-it\` to track tasks, architecture, and U
 - Launch web dashboard: \`npx @shakthizen/what-is-it\`
 
 ### 6. DEEP CODEBASE BOOTSTRAP (/what-is-it-init):
-- When user runs \`/what-is-it-init\` in chat:
-  1. Deeply analyze this codebase (manifests, routes, components, services, database models).
-  2. Formulate real features, tasks with (Why, How, Where, When), multi-page Wiki docs, and React Flow user journeys with SVG mockup frames.
-  3. Run \`npx @shakthizen/what-is-it schema\` if you need the exact JSON schema.
-  4. Save the synthesized state to a temporary JSON file (e.g. \`scratch/what-is-it-state.json\`).
-  5. Execute: \`npx @shakthizen/what-is-it import scratch/what-is-it-state.json\`.
-  6. Run \`npx @shakthizen/what-is-it status\` to confirm.
+- \`init\` already wrote a static, best-effort baseline (file-path pattern matching only, no code read) \u2014 export it first with \`npx @shakthizen/what-is-it export --format json\` to see what it found.
+- When user runs \`/what-is-it-init\` in chat, do the deep pass in this order \u2014 do not skip ahead to step 2 before step 1 is done:
+  1. **Verify & correct the real feature set and user flows first**, independent of anything missing/broken/insecure. Actually read the routes, components, services, and domain models; replace the baseline's generic "discovered file" sub-features with real \`why\`/\`how\` rationale, real actor roles, and real user flows/edges that reflect how the app is actually used.
+  2. For each screen in a flow, generate a real per-screen mockup as inline SVG and put it in \`FlowNode.data.mockupSvg\` (a single \`<svg>...</svg>\` string reflecting that screen's actual layout) instead of leaving it to the generic built-in wireframe template.
+  3. **Only after** the real feature/flow model is accurate, layer in what's missing: gaps, bugs, and security issues you find \u2014 as separate \`missingDetails\` / additional sub-features explicitly marked \`status: "missing"\`, never mixed into the "what actually exists" inventory from step 1.
+  4. Run \`npx @shakthizen/what-is-it schema\` if you need the exact JSON schema.
+  5. Save the synthesized state to a temporary JSON file (e.g. \`scratch/what-is-it-state.json\`).
+  6. Execute: \`npx @shakthizen/what-is-it import scratch/what-is-it-state.json\`.
+  7. Run \`npx @shakthizen/what-is-it status\` to confirm.
 
 ### 7. CORE TENETS:
 - **No Vibe Amnesia**: If it is not recorded in \`${binFileName}\`, future agent sessions will lose context.
@@ -153,19 +156,31 @@ description: Deeply analyze this codebase and initialize live project memory wit
 
 # Initialize Project Memory (@shakthizen/what-is-it)
 
-You are the Project Memory Architect.
-1. Read the codebase (package manifests, main routes, key components, services, and README).
-2. Understand:
-   - The product overview & architecture summary
-   - Identified actor roles (e.g. Guest, Authenticated User, Admin)
-   - Core features grouped logically
-   - Key completed and pending tasks with Why, How, Where, and When
-   - Multi-page Wiki documentation with bookmarks
-   - Visual user flow with vector SVG mockup frames (Desktop, Mobile, Modal)
-3. Check the schema with \`npx @shakthizen/what-is-it schema\`.
-4. Formulate the comprehensive JSON and write to a temporary file (e.g. \`scratch/what-is-it-state.json\`).
-5. Execute: \`npx @shakthizen/what-is-it import scratch/what-is-it-state.json\`.
-6. Run \`npx @shakthizen/what-is-it status\` to verify.
+You are the Project Memory Architect. \`init\` already wrote a static, file-path-only baseline
+(no code was read) \u2014 run \`npx @shakthizen/what-is-it export --format json\` to see it. Your job
+is to replace it with a verified model, in this strict order:
+
+**Phase 1 \u2014 Get the real feature set and user flows right, independent of anything missing or broken.**
+1. Actually read the codebase (routes, components, services, domain models, README) \u2014 don't rely
+   on the baseline's generic "file discovered" sub-features.
+2. Identify real actor roles (e.g. Guest, Authenticated User, Admin) and group real features
+   logically, each with genuine Why/How/Where/When rationale.
+3. Build real user flows (React Flow nodes/edges) that reflect how the app is actually used.
+4. For each screen node, generate a real per-screen mockup as inline SVG and set it on
+   \`FlowNode.data.mockupSvg\` \u2014 a single \`<svg>...</svg>\` string reflecting that screen's actual
+   layout \u2014 instead of leaving the generic built-in wireframe template as the only option.
+5. Write multi-page Wiki documentation with bookmarks describing this verified architecture.
+
+**Phase 2 \u2014 Only now, layer in what's missing.**
+6. Flag genuinely missing features, bugs, and security issues you find as explicit
+   \`status: "missing"\` sub-features / \`missingDetails\`, kept separate from the "what actually
+   exists" model built in Phase 1 \u2014 never conflate a real feature with a wishlist item.
+
+**Commit it:**
+7. Check the schema with \`npx @shakthizen/what-is-it schema\` if needed.
+8. Write the comprehensive JSON to a temporary file (e.g. \`scratch/what-is-it-state.json\`).
+9. Execute: \`npx @shakthizen/what-is-it import scratch/what-is-it-state.json\`.
+10. Run \`npx @shakthizen/what-is-it status\` to verify.
 `,
     "utf-8"
   );
@@ -380,12 +395,26 @@ function startServer(rootDir, port = 3456, shouldOpen = true) {
       }, 150);
     }
   });
+  function isTrustedOrigin(req) {
+    const origin = req.headers.origin;
+    const referer = req.headers.referer;
+    const header = origin || referer;
+    if (!header) return true;
+    try {
+      const url = new URL(header);
+      return (url.hostname === "localhost" || url.hostname === "127.0.0.1") && Number(url.port) === port;
+    } catch {
+      return false;
+    }
+  }
   const server = http.createServer((req, res) => {
     const parsedUrl = new URL(req.url || "/", `http://localhost:${port}`);
     const pathname = parsedUrl.pathname;
-    res.setHeader("Access-Control-Allow-Origin", "*");
-    res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+    if (pathname.startsWith("/api/") && !isTrustedOrigin(req)) {
+      res.writeHead(403, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "Cross-origin requests to the local what-is-it API are not allowed." }));
+      return;
+    }
     if (req.method === "OPTIONS") {
       res.writeHead(204);
       res.end();
@@ -423,6 +452,9 @@ function startServer(rootDir, port = 3456, shouldOpen = true) {
       req.on("end", () => {
         try {
           const incoming = JSON.parse(body);
+          if (!validateProjectData(incoming)) {
+            throw new Error("Payload does not match the expected project data shape");
+          }
           saveProjectData(rootDir, incoming);
           broadcastUpdate();
           res.writeHead(200, { "Content-Type": "application/json" });
@@ -444,13 +476,22 @@ function startServer(rootDir, port = 3456, shouldOpen = true) {
           const { taskId } = JSON.parse(body);
           const current = loadProjectData(rootDir);
           if (!current) throw new Error("Project data not found");
-          const task = current.tasks.find((t) => t.id === taskId);
+          const task = current.tasks?.find((t) => t.id === taskId);
           if (!task) throw new Error(`Task ${taskId} not found`);
           task.status = task.status === "done" ? "todo" : "done";
           if (task.status === "done") {
             task.completedAt = (/* @__PURE__ */ new Date()).toISOString();
           } else {
             delete task.completedAt;
+          }
+          if (task.subFeatureId) {
+            for (const feature of current.features) {
+              const sub = feature.subFeatures?.find((sf) => sf.id === task.subFeatureId);
+              if (sub) {
+                sub.status = task.status === "done" ? "implemented" : "missing";
+                break;
+              }
+            }
           }
           saveProjectData(rootDir, current);
           broadcastUpdate();
@@ -747,9 +788,15 @@ taskCmd.command("done <taskId>").description("Mark a task as completed").action(
   }
   task.status = "done";
   task.completedAt = (/* @__PURE__ */ new Date()).toISOString();
+  if (task.subFeatureId) {
+    const feature = data.features.find((f) => f.id === task.featureId);
+    const sub = feature?.subFeatures?.find((sf) => sf.id === task.subFeatureId);
+    if (sub) sub.status = "implemented";
+  }
   saveProjectData(cwd, data);
+  const updated = loadProjectData(cwd) ?? data;
   console.log(formatCavemanSuccess("TASK COMPLETED", task.id, `"${task.title}"`));
-  console.log(`${pc4.dim("Progress now:")} ${pc4.green(`${data.meta.overallProgress}%`)}`);
+  console.log(`${pc4.dim("Progress now:")} ${pc4.green(`${updated.meta.overallProgress}%`)}`);
 });
 taskCmd.command("list").description("List all tasks").option("--status <status>", "Filter by status (todo, in_progress, done)").action((options) => {
   const cwd = process.cwd();
@@ -819,6 +866,10 @@ program.command("import <file>").description("Import project data from a JSON fi
   try {
     const raw = fs3.readFileSync(fullPath, "utf-8");
     const incoming = JSON.parse(raw);
+    if (!validateProjectData(incoming)) {
+      console.error(formatCavemanError("Import file does not match the expected project data shape. Run `npx @shakthizen/what-is-it schema` to inspect the required structure."));
+      process.exit(1);
+    }
     saveProjectData(cwd, incoming);
     console.log(formatCavemanSuccess("PROJECT DATA IMPORTED", path3.basename(filePath)));
     const isScratch = filePath.includes("scratch") || fullPath.includes("/scratch/");

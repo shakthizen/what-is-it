@@ -9,8 +9,9 @@ import {
   renderProgressBar,
   saveProjectData,
   scanProject,
-  synthesizeProjectData
-} from "../chunk-J6DZW67A.js";
+  synthesizeProjectData,
+  validateProjectData
+} from "../chunk-5UP6YMNR.js";
 export {
   DEFAULT_FILE_NAME,
   DEFAULT_MARKDOWN_NAME,
@@ -22,6 +23,7 @@ export {
   renderProgressBar,
   saveProjectData,
   scanProject,
-  synthesizeProjectData
+  synthesizeProjectData,
+  validateProjectData
 };
 //# sourceMappingURL=index.js.map

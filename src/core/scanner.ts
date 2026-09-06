@@ -6,9 +6,6 @@ import type {
   ProjectMeta,
   Feature,
   SubFeature,
-  UserStory,
-  RoleBasedAction,
-  PlannedGapDetails,
   Task,
   WikiPage,
   UserFlow,
@@ -232,6 +229,177 @@ export function scanProject(rootDir: string): ScanContext {
   };
 }
 
+// ---------------------------------------------------------------------------
+// Synthesis: build a HONEST, best-effort ProjectData snapshot purely from what
+// the static scan above actually found. This deliberately does NOT invent
+// feature narratives, UI guidelines, personas, or "missing feature" gaps that
+// aren't derivable from the file system — it only reports discovered
+// inventory (which files exist, grouped by role) so a project always starts
+// from an accurate baseline, whatever its shape. Judgment calls that require
+// actually reading code — real feature rationale, UI specs, user flows, and
+// flagged missing/bug/security work — belong to the deep `/what-is-it-init`
+// agent pass, which reads this baseline and replaces/extends it via `import`.
+// ---------------------------------------------------------------------------
+
+function slugify(input: string): string {
+  return input
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 48) || 'item';
+}
+
+function titleFromPath(filePath: string): string {
+  const base = path.basename(filePath).replace(/\.(tsx?|jsx?|vue|svelte|dart|py|go|rs)$/i, '');
+  const words = base
+    .replace(/[-_]+/g, ' ')
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .trim();
+  return (words.charAt(0).toUpperCase() + words.slice(1)) || base;
+}
+
+const MAX_SUBFEATURES_PER_CATEGORY = 10;
+
+interface CategorySpec {
+  id: string;
+  title: string;
+  category: string;
+  files: string[];
+  order: number;
+}
+
+function buildDiscoveredFeature(spec: CategorySpec): Feature {
+  const shown = spec.files.slice(0, MAX_SUBFEATURES_PER_CATEGORY);
+  const overflow = spec.files.length - shown.length;
+
+  const subFeatures: SubFeature[] = shown.map((f, idx) => ({
+    id: `sub-${spec.id}-${idx}-${slugify(path.basename(f))}`,
+    title: titleFromPath(f),
+    description: 'Discovered during automated codebase scan.',
+    status: 'implemented',
+    what: `File present in the codebase: \`${f}\`.`,
+    why: 'Existence and role inferred from file location; rationale not yet verified by an agent.',
+    how: 'Detected by static path-pattern scan (no source code was read).',
+    where: f,
+    when: 'Discovered at last `init` scan'
+  }));
+
+  if (overflow > 0) {
+    subFeatures.push({
+      id: `sub-${spec.id}-overflow`,
+      title: `+${overflow} additional file(s) not shown`,
+      status: 'implemented',
+      what: `${overflow} more files matched this category but were omitted to keep the state file compact.`,
+      why: 'Keeps the compressed binary state small; full list available via a fresh scan or `/what-is-it-init`.',
+      how: 'Category listing capped during synthesis.',
+      where: spec.files.slice(MAX_SUBFEATURES_PER_CATEGORY).join(', ') || 'N/A',
+      when: 'Discovered at last `init` scan'
+    });
+  }
+
+  return {
+    id: spec.id,
+    title: spec.title,
+    description: `${spec.files.length} file(s) discovered under this category by the automated scanner.`,
+    category: spec.category,
+    status: 'in_progress',
+    progress: 0,
+    order: spec.order,
+    subFeatures
+  };
+}
+
+function buildFoundationFeature(context: ScanContext, order: number): Feature {
+  const { projectName, projectType, frameworks, directories, files } = context;
+  return {
+    id: 'feat-foundation',
+    title: 'Project Foundation & Structure',
+    description: 'Baseline facts established by the automated scan: stack, layout, and scale.',
+    category: 'Foundation',
+    status: 'in_progress',
+    progress: 0,
+    order,
+    subFeatures: [
+      {
+        id: 'sub-foundation-stack',
+        title: 'Detected Technology Stack',
+        status: 'implemented',
+        what: `${projectName} is classified as a \`${projectType}\` project using: ${frameworks.join(', ') || 'no recognized framework manifest'}.`,
+        why: 'Framework/manifest detection drives how the rest of this tool interprets the codebase.',
+        how: 'Parsed package.json / pubspec.yaml / Cargo.toml / go.mod / pyproject.toml dependency manifests.',
+        where: 'package.json (or equivalent manifest)',
+        when: 'Discovered at last `init` scan'
+      },
+      {
+        id: 'sub-foundation-layout',
+        title: 'Directory & File Inventory',
+        status: 'implemented',
+        what: `${files.length} tracked file(s) across ${directories.length} director(y/ies) (excluding node_modules, build output, and VCS folders).`,
+        why: 'Establishes scale before deeper feature/flow analysis.',
+        how: 'Recursive filesystem walk up to 4 levels deep with common build/dependency folders ignored.',
+        where: directories.slice(0, 5).join(', ') || context.rootDir,
+        when: 'Discovered at last `init` scan'
+      }
+    ]
+  };
+}
+
+function buildTestingFeature(context: ScanContext, order: number): Feature {
+  const { testFiles } = context;
+  const hasTests = testFiles.length > 0;
+  return {
+    id: 'feat-testing',
+    title: 'Testing & Quality Assurance',
+    description: 'What the scan could determine about automated test coverage.',
+    category: 'Verification & QA',
+    status: 'in_progress',
+    progress: 0,
+    order,
+    subFeatures: [
+      {
+        id: 'sub-testing-coverage',
+        title: hasTests ? 'Automated Test Files Present' : 'No Automated Test Files Detected',
+        status: hasTests ? 'implemented' : 'missing',
+        what: hasTests
+          ? `${testFiles.length} test/spec file(s) detected.`
+          : 'No files matching *.test.*, *.spec.*, or a test(s)/ directory were found.',
+        why: 'Automated tests are the primary signal of regression protection.',
+        how: 'Path-pattern scan for test/spec naming conventions.',
+        where: hasTests ? testFiles.slice(0, 5).join(', ') : 'N/A',
+        when: 'Discovered at last `init` scan'
+      }
+    ]
+  };
+}
+
+function buildDocsFeature(context: ScanContext, order: number): Feature {
+  const { docFiles } = context;
+  const hasDocs = docFiles.length > 0;
+  return {
+    id: 'feat-docs',
+    title: 'Documentation Coverage',
+    description: 'What the scan could determine about existing project documentation.',
+    category: 'Documentation',
+    status: 'in_progress',
+    progress: 0,
+    order,
+    subFeatures: [
+      {
+        id: 'sub-docs-coverage',
+        title: hasDocs ? 'Documentation Files Present' : 'No Documentation Files Detected',
+        status: hasDocs ? 'implemented' : 'missing',
+        what: hasDocs
+          ? `${docFiles.length} markdown/doc file(s) detected.`
+          : 'No markdown files or docs/ directory were found.',
+        why: 'Documentation coverage affects how quickly new contributors (human or AI) can onboard.',
+        how: 'Path-pattern scan for *.md files and docs/ directories.',
+        where: hasDocs ? docFiles.slice(0, 5).join(', ') : 'N/A',
+        when: 'Discovered at last `init` scan'
+      }
+    ]
+  };
+}
+
 export function synthesizeProjectData(context: ScanContext): ProjectData {
   const {
     projectName,
@@ -246,6 +414,8 @@ export function synthesizeProjectData(context: ScanContext): ProjectData {
     testFiles,
     docFiles,
     files,
+    directories,
+    recentCommits,
     version
   } = context;
 
@@ -263,510 +433,27 @@ export function synthesizeProjectData(context: ScanContext): ProjectData {
     overallProgress: 0
   };
 
+  // Guaranteed baseline features (always present, always honest about what was/wasn't found).
   const features: Feature[] = [];
-  let featureOrder = 1;
+  let order = 1;
+  features.push(buildFoundationFeature(context, order++));
 
-  // 1. Core Storage & Domain Engine
-  const coreTargetFiles = coreFiles.length > 0 ? coreFiles : files.filter(f => f.startsWith('src/')).slice(0, 4);
-  const coreSubFeatures: SubFeature[] = [
-    {
-      id: 'sub-core-persistence',
-      title: 'Compressed Binary State & Storage Engine',
-      description: 'Zlib-deflated binary serialization with magic header verification for high-density persistence.',
-      status: 'implemented',
-      what: 'Atomic binary read/write pipeline (.what-is-it.bin) with checksum and fallback decompression.',
-      why: 'Eliminates file bloat and enables instant zero-latency loads for multi-agent workflows.',
-      how: 'Node.js zlib deflateSync (level 9) with atomic temporary file renaming.',
-      where: coreTargetFiles.find(f => f.includes('storage')) || 'src/core/storage.ts',
-      when: 'Phase 1 MVP'
-    },
-    {
-      id: 'sub-core-schema',
-      title: 'Type-Safe Feature Spec & Contract Validation',
-      description: 'Strict TypeScript interfaces for nested features, sub-features, user stories, and role actions.',
-      status: 'implemented',
-      what: 'Runtime JSON Schema and compile-time TypeScript models covering all project entities.',
-      why: 'Guarantees structural validity across CLI, web dashboard, and AI agent interactions.',
-      how: 'Exported JSON schema builder and TypeScript strict type definitions.',
-      where: coreTargetFiles.find(f => f.includes('schema')) || 'src/core/schema.ts',
-      when: 'Phase 1 MVP'
-    },
-    {
-      id: 'sub-core-lock',
-      title: 'Atomic Multi-Process File Locking',
-      description: 'Advisory file locking to prevent corrupted state when multiple background agents write concurrently.',
-      status: 'missing',
-      what: 'Advisory file lock protocol with timeout, auto-retry, and stale lock eviction.',
-      why: 'Multiple AI agents or background tasks writing simultaneously can race and corrupt state.',
-      how: 'Implement file descriptor locking or lockfile mechanism before atomic rename.',
-      where: 'src/core/storage.ts, src/core/lock.ts',
-      when: 'Milestone 2 (Reliability)'
-    }
+  const dynamicCategories: CategorySpec[] = [
+    { id: 'feat-routes', title: 'Routes & Screens', category: 'Routing & Navigation', files: routes, order: 0 },
+    { id: 'feat-components', title: 'UI Components', category: 'Frontend & UI', files: components, order: 0 },
+    { id: 'feat-services', title: 'Services & APIs', category: 'Backend & Services', files: services, order: 0 },
+    { id: 'feat-cli', title: 'CLI & Automation', category: 'Tooling & CLI', files: cliFiles, order: 0 },
+    { id: 'feat-core', title: 'Core Domain Logic', category: 'Core Engine', files: coreFiles, order: 0 }
   ];
 
-  features.push({
-    id: 'feat-core-engine',
-    title: 'Core Storage & Data Engine',
-    description: 'Binary compression persistence, typed domain models, and atomic state synchronization.',
-    category: 'Core Engine',
-    status: 'in_progress',
-    progress: Math.round((coreSubFeatures.filter(s => s.status === 'implemented').length / coreSubFeatures.length) * 100),
-    order: featureOrder++,
-    subFeatures: coreSubFeatures,
-    roleActions: [
-      {
-        id: 'ra-core-1',
-        actorRole: 'Developer',
-        action: 'Load and inspect binary project memory state',
-        status: 'implemented',
-        targetScreenOrEndpoint: 'CLI / Storage Engine'
-      },
-      {
-        id: 'ra-core-2',
-        actorRole: 'Developer',
-        action: 'Perform concurrent atomic writes safely without race conditions',
-        status: 'missing',
-        targetScreenOrEndpoint: 'src/core/lock.ts'
-      }
-    ],
-    userStories: [
-      {
-        id: 'us-core-1',
-        actorRole: 'Developer',
-        story: 'As a Developer, I want binary compressed project memory so that large architectures load instantly with zero token bloat.',
-        status: 'implemented',
-        acceptanceCriteria: ['Binary files under 50KB for large repos', 'Load times < 15ms', 'Atomic write reliability']
-      },
-      {
-        id: 'us-core-2',
-        actorRole: 'Developer',
-        story: 'As a Developer, I want multi-process locking so that background subagents do not overwrite each other.',
-        status: 'missing',
-        acceptanceCriteria: ['Advisory lock before file write', 'Stale lock auto-cleanup after 10s', 'Graceful retry queue']
-      }
-    ],
-    missingDetails: {
-      whatsMissing: [
-        'Atomic lockfile protocol for concurrent multi-agent write operations',
-        'State migration engine for forward/backward binary schema compatibility'
-      ],
-      why: 'Safeguard binary integrity when multiple subagents run parallel write tasks.',
-      how: 'Implement advisory file locking before write and add schema version upgrade hooks.',
-      where: ['src/core/storage.ts', 'src/core/lock.ts'],
-      when: 'Next Milestone (Sprint 2)'
-    }
-  });
+  for (const spec of dynamicCategories) {
+    if (spec.files.length === 0) continue;
+    spec.order = order++;
+    features.push(buildDiscoveredFeature(spec));
+  }
 
-  // 2. CLI Tooling & Caveman Interface
-  const cliTargetFiles = cliFiles.length > 0 ? cliFiles : files.filter(f => f.includes('cli') || f.includes('bin'));
-  const cliSubFeatures: SubFeature[] = [
-    {
-      id: 'sub-cli-dispatcher',
-      title: 'CLI Command Suite & Terminal Dispatcher',
-      description: 'Full CLI suite with init, status, task, feature, export, import, schema, and UI launchers.',
-      status: 'implemented',
-      what: 'Comprehensive command line interface with arguments parsing and colored output.',
-      why: 'Enables seamless control by both humans in terminals and AI agents via shell execution.',
-      how: 'Commander.js option definitions, picocolors output formatting, and process exit codes.',
-      where: cliTargetFiles.find(f => f.includes('index')) || 'src/cli/index.ts',
-      when: 'Phase 1 MVP'
-    },
-    {
-      id: 'sub-cli-caveman',
-      title: 'Caveman-Style Token-Efficient Status Formatter',
-      description: 'Concise, high-density terminal status output optimized for LLM token efficiency.',
-      status: 'implemented',
-      what: 'Formatted UGG/GRR caveman status highlighting overall progress, features, and missing gaps.',
-      why: 'Minimizes LLM prompt token consumption while communicating maximum actionable context.',
-      how: 'Custom string templater with color-coded ANSI glyphs and priority filters.',
-      where: cliTargetFiles.find(f => f.includes('caveman')) || 'src/cli/caveman.ts',
-      when: 'Phase 1 MVP'
-    },
-    {
-      id: 'sub-cli-cleaner',
-      title: 'Automatic Scratch State Cleaner on Import',
-      description: 'Automatically cleans up temporary scratch state JSON files and folders after binary update.',
-      status: 'implemented',
-      what: 'Unlinks temporary scratch json files and deletes empty scratch directories on successful import.',
-      why: 'Prevents workspace clutter and prevents agents from reading stale temporary files.',
-      how: 'File unlink hook with parent directory emptiness check in the CLI import action.',
-      where: 'src/cli/index.ts',
-      when: 'Current Sprint'
-    },
-    {
-      id: 'sub-cli-wizard',
-      title: 'Interactive Feature & Milestone CLI Prompt Wizard',
-      description: 'Interactive terminal prompts with tab completion for scoping features and sub-features.',
-      status: 'missing',
-      what: 'Terminal interactive questionnaire for guiding developers through feature gap definitions.',
-      why: 'Accelerates feature creation for developers who prefer interactive terminal guidance.',
-      how: 'Integrate @clack/prompts or enquirer for interactive fuzzy selection and validation.',
-      where: 'src/cli/wizard.ts, src/cli/index.ts',
-      when: 'Milestone 3'
-    }
-  ];
-
-  features.push({
-    id: 'feat-cli-tools',
-    title: 'CLI Tooling & Automation Interface',
-    description: 'Command line utilities, caveman token-efficient status formatting, and scratch cleanup.',
-    category: 'Tooling & CLI',
-    status: 'in_progress',
-    progress: Math.round((cliSubFeatures.filter(s => s.status === 'implemented').length / cliSubFeatures.length) * 100),
-    order: featureOrder++,
-    subFeatures: cliSubFeatures,
-    roleActions: [
-      {
-        id: 'ra-cli-1',
-        actorRole: 'Developer',
-        action: 'Query concise caveman status with sub-features and gaps',
-        status: 'implemented',
-        targetScreenOrEndpoint: 'npx @shakthizen/what-is-it status'
-      },
-      {
-        id: 'ra-cli-2',
-        actorRole: 'Developer',
-        action: 'Import state and automatically clean temporary scratch files',
-        status: 'implemented',
-        targetScreenOrEndpoint: 'npx @shakthizen/what-is-it import <file>'
-      },
-      {
-        id: 'ra-cli-3',
-        actorRole: 'Developer',
-        action: 'Launch interactive terminal wizard to define features and gaps',
-        status: 'missing',
-        targetScreenOrEndpoint: 'src/cli/wizard.ts'
-      }
-    ],
-    userStories: [
-      {
-        id: 'us-cli-1',
-        actorRole: 'Developer',
-        story: 'As a Developer, I want a concise caveman CLI status so that my AI coding assistant reads minimal tokens while staying oriented.',
-        status: 'implemented',
-        acceptanceCriteria: ['Status output under 30 lines', 'Includes feature progress and planned gaps', 'Lists quick AI action commands']
-      },
-      {
-        id: 'us-cli-2',
-        actorRole: 'Developer',
-        story: 'As a Developer, I want scratch state files to be deleted after import so that my repository remains clean.',
-        status: 'implemented',
-        acceptanceCriteria: ['Scratch json file unlinked upon import', 'Empty scratch dir pruned', 'Confirmation printed to terminal']
-      }
-    ],
-    missingDetails: {
-      whatsMissing: [
-        'Interactive feature scoping wizard with tab auto-completion',
-        'Background daemon mode with real-time file change notifications'
-      ],
-      why: 'Provide an intuitive interactive setup experience for terminal-heavy developers.',
-      how: 'Add Clack/Enquirer prompts and integrate an optional background fs.watch daemon.',
-      where: ['src/cli/wizard.ts', 'src/cli/daemon.ts'],
-      when: 'Milestone 3'
-    }
-  });
-
-  // 3. Web Dashboard & Spec Explorer
-  const webComponents = components.length > 0 ? components : files.filter(f => f.includes('src/web'));
-  const webSubFeatures: SubFeature[] = [
-    {
-      id: 'sub-web-spec-explorer',
-      title: 'Feature Spec & Architecture Explorer',
-      description: 'Rich view displaying main features, nested sub-features with 4 W\'s, user stories, role actions, and planned gaps.',
-      status: 'implemented',
-      what: 'Interactive dashboard replacing flat task lists with deep architectural feature cards and gap summaries.',
-      why: 'Gives humans and agents total clarity on what capabilities exist, who uses them, and what is missing.',
-      how: 'React components with Tailwind CSS cards, filter bars, status pills, and expandable 4 W drawers.',
-      where: webComponents.find(f => f.includes('ProgressDashboard')) || 'src/web/components/ProgressDashboard.tsx',
-      when: 'Current Sprint'
-    },
-    {
-      id: 'sub-web-flow-graph',
-      title: 'Interactive SVG Node Graph & Wireframe Canvas',
-      description: 'Visual React Flow canvas rendering desktop, mobile, and modal frames connected to actor roles.',
-      status: 'implemented',
-      what: 'Multi-screen UI topology visualization with custom frame renderers and edge connectors.',
-      why: 'Allows visual verification of user journeys, design guidelines, and screen layouts.',
-      how: '@xyflow/react custom node implementations (DesktopFrameNode, MobileFrameNode, ModalFrameNode, ActorNode).',
-      where: webComponents.find(f => f.includes('UserFlowGraph')) || 'src/web/components/UserFlowGraph.tsx',
-      when: 'Phase 1 MVP'
-    },
-    {
-      id: 'sub-web-drawer',
-      title: 'Design System & Component Specs Drawer',
-      description: 'Right-rail sliding inspector detailing typography, color tokens, responsive breakpoints, and WCAG accessibility.',
-      status: 'implemented',
-      what: 'Detailed sliding inspector presenting UI guidelines, state specs (empty, loading, error), and layout blocks.',
-      why: 'Provides full UI design system specs for any selected screen node.',
-      how: 'Collapsible slide-over drawer triggered by node selection with tabbed specs and JSON inspector.',
-      where: webComponents.find(f => f.includes('Drawer')) || 'src/web/components/Drawer.tsx',
-      when: 'Phase 1 MVP'
-    },
-    {
-      id: 'sub-web-theme-touch',
-      title: 'Dark/Light Theme Switcher & Mobile Gestures',
-      description: 'Theme preference toggle and responsive mobile touch gestures (pinch-zoom, swipe tabs).',
-      status: 'missing',
-      what: 'Persistent theme switching and mobile touch gesture support for the visual canvas.',
-      why: 'Enhances usability on mobile devices and supports user accessibility preferences.',
-      how: 'Tailwind dark class toggle with CSS variables and touch event handlers on the canvas viewport.',
-      where: 'src/web/components/ThemeToggle.tsx, src/web/components/UserFlowGraph.tsx',
-      when: 'Milestone 2'
-    }
-  ];
-
-  features.push({
-    id: 'feat-web-dashboard',
-    title: 'Visual Dashboard & Spec Explorer',
-    description: 'Interactive web dashboard, feature spec viewer, SVG flow graph canvas, and design system inspector.',
-    category: 'Frontend & UI',
-    status: 'in_progress',
-    progress: Math.round((webSubFeatures.filter(s => s.status === 'implemented').length / webSubFeatures.length) * 100),
-    order: featureOrder++,
-    subFeatures: webSubFeatures,
-    roleActions: [
-      {
-        id: 'ra-web-1',
-        actorRole: 'User',
-        action: 'Browse project features, sub-features, and missing planned gaps',
-        status: 'implemented',
-        targetScreenOrEndpoint: 'Web Dashboard / Feature Spec Explorer'
-      },
-      {
-        id: 'ra-web-2',
-        actorRole: 'User',
-        action: 'Inspect interactive SVG user flow graph and screen wireframes',
-        status: 'implemented',
-        targetScreenOrEndpoint: 'Web Dashboard / Visual Graph Canvas'
-      },
-      {
-        id: 'ra-web-3',
-        actorRole: 'User',
-        action: 'Toggle between dark and light themes or use touch gestures on mobile',
-        status: 'missing',
-        targetScreenOrEndpoint: 'Web Dashboard / Theme Switcher'
-      }
-    ],
-    userStories: [
-      {
-        id: 'us-web-1',
-        actorRole: 'User',
-        story: 'As a User, I want to explore feature specs and missing gaps so that I understand product capabilities without reading raw code.',
-        status: 'implemented',
-        acceptanceCriteria: ['Clear status glyphs (implemented, in-progress, missing)', 'Search and filter by category or status', 'Expandable 4 W details']
-      },
-      {
-        id: 'us-web-2',
-        actorRole: 'User',
-        story: 'As a User, I want to inspect screen wireframes and design system rules so that UI components maintain visual consistency.',
-        status: 'implemented',
-        acceptanceCriteria: ['Desktop and mobile frame nodes', 'Drawer shows typography, colors, and accessibility specs', 'Interactive edge connections']
-      }
-    ],
-    missingDetails: {
-      whatsMissing: [
-        'Light / Dark theme toggle with system preference auto-detection',
-        'Mobile touch gesture gestures and canvas minimap zoom-to-fit toggle'
-      ],
-      why: 'Provide high-grade accessibility across diverse screen sizes and lighting environments.',
-      how: 'Add theme context provider and configure React Flow touch gesture handlers.',
-      where: ['src/web/components/Navbar.tsx', 'src/web/components/UserFlowGraph.tsx'],
-      when: 'Milestone 2'
-    }
-  });
-
-  // 4. Data Flow, API & Real-Time Sync
-  const apiFiles = services.length > 0 ? services : files.filter(f => f.includes('server') || f.includes('api'));
-  const apiSubFeatures: SubFeature[] = [
-    {
-      id: 'sub-api-server',
-      title: 'Embedded Micro-Server & Static Asset Server',
-      description: 'Zero-dependency Node HTTP micro-server serving pre-bundled SPA assets and REST endpoints.',
-      status: 'implemented',
-      what: 'Local web server mounted on port 3456 serving the visual viewer without external runtime dependencies.',
-      why: 'Enables instant web dashboard launching with a single npx command without complex server infrastructure.',
-      how: 'Node.js http module with MIME type resolution and gzip stream support.',
-      where: apiFiles.find(f => f.includes('server')) || 'src/cli/server.ts',
-      when: 'Phase 1 MVP'
-    },
-    {
-      id: 'sub-api-sse',
-      title: 'Live Server-Sent Events (SSE) Broadcast Pipeline',
-      description: 'Push-based SSE channel streaming instantaneous state mutations directly to connected browser clients.',
-      status: 'implemented',
-      what: 'Real-time broadcast mechanism pushing updated project state on every CLI mutation.',
-      why: 'Eliminates manual browser refresh and gives developers immediate feedback as AI agents work.',
-      how: 'text/event-stream response stream with keep-alive heartbeat and reconnection support.',
-      where: apiFiles.find(f => f.includes('server')) || 'src/cli/server.ts',
-      when: 'Phase 1 MVP'
-    },
-    {
-      id: 'sub-api-reconnect',
-      title: 'Resilient SSE Reconnection with Exponential Backoff',
-      description: 'Client-side event source reconnect handler with exponential backoff and offline visual banners.',
-      status: 'missing',
-      what: 'Robust client-side SSE reconnect protocol with visual disconnection banner and automatic retry.',
-      why: 'Prevents broken UI state when server restarts or terminal process pauses.',
-      how: 'Wrap EventSource with reconnection backoff timer and toast notifications.',
-      where: 'src/web/App.tsx, src/web/components/Navbar.tsx',
-      when: 'Milestone 2'
-    }
-  ];
-
-  features.push({
-    id: 'feat-api-sync',
-    title: 'Data Flow & Real-Time Synchronization',
-    description: 'Embedded HTTP server, Server-Sent Events (SSE) live updates, and resilient state synchronization.',
-    category: 'Networking & Sync',
-    status: 'in_progress',
-    progress: Math.round((apiSubFeatures.filter(s => s.status === 'implemented').length / apiSubFeatures.length) * 100),
-    order: featureOrder++,
-    subFeatures: apiSubFeatures,
-    roleActions: [
-      {
-        id: 'ra-api-1',
-        actorRole: 'Developer',
-        action: 'Stream live updates to connected browsers when agents modify tasks or features',
-        status: 'implemented',
-        targetScreenOrEndpoint: 'GET /api/events (SSE)'
-      },
-      {
-        id: 'ra-api-2',
-        actorRole: 'User',
-        action: 'Automatically reconnect to server if terminal restarts without losing view state',
-        status: 'missing',
-        targetScreenOrEndpoint: 'src/web/App.tsx'
-      }
-    ],
-    userStories: [
-      {
-        id: 'us-api-1',
-        actorRole: 'Developer',
-        story: 'As a Developer, I want instant live updates in my open browser so that I watch my agent complete work in real time.',
-        status: 'implemented',
-        acceptanceCriteria: ['SSE broadcast on task completion', 'Browser updates < 100ms', 'No manual refresh required']
-      }
-    ],
-    missingDetails: {
-      whatsMissing: [
-        'Exponential backoff reconnection interceptor for client EventSource',
-        'Offline fallback caching when server connection is lost'
-      ],
-      why: 'Ensure seamless browser experience even if developer stops and restarts the CLI server.',
-      how: 'Implement exponential backoff in App.tsx EventSource listener with state persistence.',
-      where: ['src/web/App.tsx'],
-      when: 'Milestone 2'
-    }
-  });
-
-  // 5. Multi-Agent Skills, Docs & Quality Assurance
-  const testTargetFiles = testFiles.length > 0 ? testFiles : files.filter(f => f.includes('test'));
-  const qaSubFeatures: SubFeature[] = [
-    {
-      id: 'sub-qa-skill-installer',
-      title: 'Multi-Agent Rules & Skill Generator',
-      description: 'Generates and installs SKILL.md, AGENTS.md, CLAUDE.md, and .cursorrules across all major IDE agents.',
-      status: 'implemented',
-      what: 'Universal agent onboarding rules installer establishing project memory protocol.',
-      why: 'Ensures AI coding assistants (Antigravity, Cursor, Claude Code) automatically follow live memory protocols.',
-      how: 'File templating with project-specific path injection and global config directory discovery.',
-      where: 'src/cli/skills.ts',
-      when: 'Phase 1 MVP'
-    },
-    {
-      id: 'sub-qa-markdown-mirror',
-      title: 'Human-Readable Markdown Overview Mirror',
-      description: 'Self-regenerating WHAT_IS_IT.md documentation mirror synchronized with binary state.',
-      status: 'implemented',
-      what: 'Formatted markdown document with progress bars, feature tables, and user flow links.',
-      why: 'Allows repository visitors on GitHub to inspect live architecture and progress without running the CLI.',
-      how: 'Automated markdown generator invoked on every binary write.',
-      where: 'src/core/markdown.ts',
-      when: 'Phase 1 MVP'
-    },
-    {
-      id: 'sub-qa-unit-tests',
-      title: 'Comprehensive Automated Unit & Integration Tests',
-      description: 'Vitest test suite covering binary persistence, schema validation, scanner synthesis, and CLI actions.',
-      status: 'implemented',
-      what: 'Automated test suite validating storage decompression, integrity checks, and progress calculation.',
-      why: 'Guarantees zero regressions across releases and package upgrades.',
-      how: 'Vitest runner with temporary test directory fixtures and assertion helpers.',
-      where: testTargetFiles[0] || 'test/core.test.ts',
-      when: 'Phase 1 MVP'
-    },
-    {
-      id: 'sub-qa-e2e-headless',
-      title: 'End-to-End Headless Visual Regression Tests',
-      description: 'Playwright headless browser verification of React Flow graph rendering and drawer interactions.',
-      status: 'missing',
-      what: 'Automated visual screenshot comparison and interaction tests for the web viewer.',
-      why: 'Prevents subtle rendering glitches in SVG flow frames and custom node layouts.',
-      how: 'Playwright test runner with Percy or pixelmatch snapshot assertions.',
-      where: 'test/e2e/canvas.spec.ts',
-      when: 'Milestone 3'
-    }
-  ];
-
-  features.push({
-    id: 'feat-qa-docs',
-    title: 'Verification, Docs & Multi-Agent Protocols',
-    description: 'Multi-agent skill installation, synchronized markdown documentation, and automated test suites.',
-    category: 'Verification & QA',
-    status: 'in_progress',
-    progress: Math.round((qaSubFeatures.filter(s => s.status === 'implemented').length / qaSubFeatures.length) * 100),
-    order: featureOrder++,
-    subFeatures: qaSubFeatures,
-    roleActions: [
-      {
-        id: 'ra-qa-1',
-        actorRole: 'Developer',
-        action: 'Install project memory rules for Antigravity, Cursor, and Claude Code',
-        status: 'implemented',
-        targetScreenOrEndpoint: 'npx @shakthizen/what-is-it install-skill'
-      },
-      {
-        id: 'ra-qa-2',
-        actorRole: 'Developer',
-        action: 'Run automated unit and integration tests',
-        status: 'implemented',
-        targetScreenOrEndpoint: 'pnpm test'
-      },
-      {
-        id: 'ra-qa-3',
-        actorRole: 'Developer',
-        action: 'Run headless visual regression tests on the web canvas',
-        status: 'missing',
-        targetScreenOrEndpoint: 'test/e2e/canvas.spec.ts'
-      }
-    ],
-    userStories: [
-      {
-        id: 'us-qa-1',
-        actorRole: 'Developer',
-        story: 'As a Developer, I want multi-agent rules installed automatically so that new AI agents immediately know the project memory protocol.',
-        status: 'implemented',
-        acceptanceCriteria: ['Installs to AGENTS.md, CLAUDE.md, and .cursorrules', 'Configures global or local skills', 'Documents session start orientation']
-      },
-      {
-        id: 'us-qa-2',
-        actorRole: 'Developer',
-        story: 'As a Developer, I want a synced WHAT_IS_IT.md mirror so that GitHub viewers can inspect live progress at a glance.',
-        status: 'implemented',
-        acceptanceCriteria: ['Updated on every binary write', 'Shows ASCII progress bar', 'Lists features and active focus']
-      }
-    ],
-    missingDetails: {
-      whatsMissing: [
-        'Headless visual regression test suite for React Flow canvas and drawer',
-        'Continuous integration GitHub Actions workflow for automatic publish'
-      ],
-      why: 'Ensure web canvas rendering and UI wireframes never degrade across dependency updates.',
-      how: 'Configure Playwright test runner and GitHub Actions CI workflow.',
-      where: ['test/e2e/canvas.spec.ts', '.github/workflows/ci.yml'],
-      when: 'Milestone 3'
-    }
-  });
+  features.push(buildTestingFeature(context, order++));
+  features.push(buildDocsFeature(context, order++));
 
   // Calculate overall progress across all sub-features
   let allSubFeaturesCount = 0;
@@ -777,7 +464,10 @@ export function synthesizeProjectData(context: ScanContext): ProjectData {
   }
   meta.overallProgress = allSubFeaturesCount > 0 ? Math.round((allImplementedCount / allSubFeaturesCount) * 100) : 0;
 
-  // Synthesize legacy Tasks from subFeatures for backwards compatibility
+  // Synthesize legacy Tasks 1:1 from subFeatures for backward compatibility. Each task is
+  // linked back via subFeatureId so completing it (CLI `task done` or the dashboard
+  // checkbox) actually flips the sub-feature that drives real progress — see
+  // computeProgress in core/storage.ts.
   const tasks: Task[] = [];
   let taskIndex = 1;
   for (const f of features) {
@@ -785,6 +475,7 @@ export function synthesizeProjectData(context: ScanContext): ProjectData {
       tasks.push({
         id: `task-${taskIndex++}`,
         featureId: f.id,
+        subFeatureId: sf.id,
         title: sf.title,
         status: sf.status === 'implemented' ? 'done' : sf.status === 'in_progress' ? 'in_progress' : 'todo',
         priority: sf.status === 'missing' ? 'high' : 'medium',
@@ -799,7 +490,9 @@ export function synthesizeProjectData(context: ScanContext): ProjectData {
     }
   }
 
-  // Synthesize rich Wiki Pages
+  // Wiki: two honest pages built only from real scan data. No fabricated design tokens,
+  // personas, or user journeys — those require actually reading the code and belong to the
+  // `/what-is-it-init` agent pass.
   const wiki: WikiPage[] = [
     {
       id: 'architecture-overview',
@@ -809,297 +502,103 @@ export function synthesizeProjectData(context: ScanContext): ProjectData {
       lastModified: new Date().toISOString(),
       bookmarks: [
         { id: 'high-level-topology', title: 'High-Level Topology', level: 2 },
-        { id: 'feature-spec-model', title: 'Feature Spec & Sub-Feature Architecture', level: 2 },
         { id: 'tech-stack-decisions', title: 'Tech Stack Decisions', level: 2 },
-        { id: 'directory-structure', title: 'Directory Structure', level: 2 }
+        { id: 'directory-structure', title: 'Directory Structure', level: 2 },
+        { id: 'recent-activity', title: 'Recent Activity', level: 2 }
       ],
-      content: `## High-Level Topology\n\n${archSummary}\n\n\`\`\`text\n+-------------------------------------------------------------+\n|                      Client / UI Layer                      |\n|   Routes: ${routes.length} discovered | Components: ${components.length} discovered  |\n+------------------------------+------------------------------+\n                               |\n                               v\n+-------------------------------------------------------------+\n|                   Services & Data Layer                     |\n|   API Endpoints / Services: ${services.length} discovered             |\n+-------------------------------------------------------------+\n                               |\n                               v\n+-------------------------------------------------------------+\n|                   Core Engine & CLI Layer                   |\n|   Core / CLI Modules: ${cliFiles.length + coreFiles.length} discovered               |\n+-------------------------------------------------------------+\n\`\`\`\n\n## Feature Spec & Sub-Feature Architecture\n\nThis project tracks capabilities through a structured **Feature Spec Model**:\n- **Main Features**: High-level modules and domains.\n- **Sub-Features**: Granular capabilities with implementation status (\`implemented\`, \`in_progress\`, \`missing\`) and full 4 W's rationale (\`what\`, \`why\`, \`how\`, \`where\`, \`when\`).\n- **Role-Based Actions**: Operational capabilities mapped per actor role (\`Developer\`, \`User\`, \`Admin\`, \`Guest\`).\n- **User Stories**: Acceptance-criteria-driven requirements ensuring user empathy.\n- **What's Missing & Planned Gaps**: Explicit callouts of architectural debt, planned reliability, and future milestones.\n\n## Tech Stack Decisions\n\n- **Project Category**: \`${projectType.toUpperCase()}\`\n- **Primary Frameworks**: ${frameworks.map(f => `\`${f}\``).join(', ') || 'Vanilla / Custom'}\n- **Live Documentation**: \`@shakthizen/what-is-it\` compressed binary state & multi-agent skill.\n\n## Directory Structure\n\n\`\`\`text\n${context.directories.slice(0, 12).map(d => `📁 ${d}`).join('\n') || '📁 root'}\n\`\`\`\n`
+      content: `## High-Level Topology\n\n${archSummary}\n\n\`\`\`text\n+-------------------------------------------------------------+\n|                      Client / UI Layer                      |\n|   Routes: ${routes.length} discovered | Components: ${components.length} discovered  |\n+------------------------------+------------------------------+\n                               |\n                               v\n+-------------------------------------------------------------+\n|                   Services & Data Layer                     |\n|   API Endpoints / Services: ${services.length} discovered             |\n+-------------------------------------------------------------+\n                               |\n                               v\n+-------------------------------------------------------------+\n|                   Core Engine & CLI Layer                   |\n|   Core / CLI Modules: ${cliFiles.length + coreFiles.length} discovered               |\n+-------------------------------------------------------------+\n\`\`\`\n\n> This topology reflects file-path pattern matching only — no source code was read. Run \`/what-is-it-init\` in your AI agent chat to replace this with a verified architecture, real user flows, and UI specs.\n\n## Tech Stack Decisions\n\n- **Project Category**: \`${projectType.toUpperCase()}\`\n- **Primary Frameworks**: ${frameworks.map(f => `\`${f}\``).join(', ') || 'Vanilla / Custom'}\n- **Live Documentation**: \`@shakthizen/what-is-it\` compressed binary state & multi-agent skill.\n\n## Directory Structure\n\n\`\`\`text\n${directories.slice(0, 16).map(d => `📁 ${d}`).join('\n') || '📁 root'}\n\`\`\`\n\n## Recent Activity\n\n${recentCommits.length > 0 ? recentCommits.map(c => `- \`${c}\``).join('\n') : '_No git history available._'}\n`
     },
     {
-      id: 'ui-design-guidelines',
-      title: 'UI Guidelines & Design System',
-      category: 'Design & UX',
+      id: 'codebase-inventory',
+      title: 'Codebase Inventory (Auto-Discovered)',
+      category: 'Discovery',
       order: 2,
       lastModified: new Date().toISOString(),
       bookmarks: [
-        { id: 'design-principles', title: 'Design Principles', level: 2 },
-        { id: 'color-palette-tokens', title: 'Color Palette Tokens', level: 2 },
-        { id: 'typography-scale', title: 'Typography Scale', level: 2 },
-        { id: 'spacing-and-layout-grid', title: 'Spacing & Layout Grid', level: 2 },
-        { id: 'component-standards', title: 'Component Standards', level: 2 },
-        { id: 'accessibility-wcag', title: 'Accessibility & WCAG 2.1 AA', level: 2 },
-        { id: 'state-handling-patterns', title: 'State Handling Patterns', level: 2 }
+        { id: 'discovered-categories', title: 'Discovered Categories', level: 2 },
+        { id: 'next-step', title: 'Next Step: Deep Agent Analysis', level: 2 }
       ],
-      content: `## Design Principles\n\n1. **Visual Clarity First**: Use crisp vector wireframes, distinct typography scales, and generous whitespace.\n2. **Immediate Feedback**: Micro-interactions, animated state transitions, and clear loading states.\n3. **Actor-Role Empathy**: Customize interfaces specifically for the active user role.\n4. **Resilient State Architecture**: Every interactive surface must account for empty, loading, error, and hydrated states.\n\n## Color Palette Tokens\n\n| Role / Intent | Hex Token | Visual Representation |\n| :--- | :--- | :--- |\n| **Primary Brand** | \`#6366f1\` (Indigo 500) | 🟣 Primary buttons, active tabs, focus rings |\n| **Success / Done** | \`#10b981\` (Emerald 500) | 🟢 Implemented features, positive status indicators |\n| **In Progress** | \`#f59e0b\` (Amber 500) | 🟡 Active execution, pending review badges |\n| **Danger / Missing** | \`#ef4444\` (Rose 500) | 🔴 Missing capabilities, architectural gaps |\n| **Dark Canvas** | \`#090d16\` (Slate 950) | ⬛ Deep obsidian base background |\n| **Surface Card** | \`#131b2e\` (Slate 900) | 🪟 Frosted glass card containers |\n| **Card Border** | \`#1e293b\` (Slate 800) | 📐 Subtle structural dividers |\n| **Text Primary** | \`#f8fafc\` (Slate 50) | ⚪ Headings and primary titles |\n| **Text Muted** | \`#94a3b8\` (Slate 400) | 🔘 Captions, secondary labels, timestamps |\n\n## Typography Scale\n\n- **Display**: \`font-bold 32px / line-height 40px\` — Hero headlines and landing value props.\n- **H1 Heading**: \`font-bold 24px / line-height 32px\` — Page titles and section headers.\n- **H2 Heading**: \`font-semibold 18px / line-height 26px\` — Card titles and group headers.\n- **H3 Heading**: \`font-medium 14px / line-height 20px\` — Subheaders and table column titles.\n- **Body Text**: \`font-normal 14px / line-height 22px\` — Primary content and descriptions.\n- **Caption / Meta**: \`font-normal 12px / line-height 16px\` — Badges, secondary metadata, timestamps.\n- **Monospace Code**: \`font-mono 12px\` — File paths, IDs, tokens, shell commands.\n\n## Spacing & Layout Grid\n\n- **Base Unit**: 4px / 8px scale (\`0.5rem = 8px\`, \`1rem = 16px\`, \`1.5rem = 24px\`, \`2rem = 32px\`).\n- **Container Padding**: Desktop \`p-6\` (24px), Mobile \`p-4\` (16px).\n- **Element Spacing**: Cards \`gap-4\` (16px), dense lists \`gap-2\` (8px).\n- **Max Width**: Application canvas constrained to \`max-w-7xl\` with auto centering.\n\n## Accessibility & WCAG 2.1 AA\n\n- **Color Contrast**: All text must achieve >= 4.5:1 contrast against its background.\n- **Keyboard Navigation**: All interactive elements (buttons, links, inputs) must have visible focus rings (\`focus-visible:ring-2\`).\n- **ARIA Semantics**: Use proper semantic HTML, \`aria-label\` for icon buttons, and \`role=\"dialog\"\` with focus trapping on modals.\n\n## State Handling Patterns\n\n- **Empty State**: Friendly illustration or icon, explanatory heading, and prominent action button to create first item.\n- **Loading State**: Skeleton placeholders preserving layout dimensions (avoid jumping / layout shift).\n- **Error State**: Inline dismissible alert banner with human-readable cause and \"Retry\" button.\n`
-    },
-    {
-      id: 'actor-roles-user-journeys',
-      title: 'Actor Roles & User Journeys',
-      category: 'Product & UX',
-      order: 3,
-      lastModified: new Date().toISOString(),
-      bookmarks: [
-        { id: 'identified-actors', title: 'Identified Actors', level: 2 },
-        { id: 'primary-user-flow', title: 'Primary User Flow', level: 2 }
-      ],
-      content: `## Identified Actors\n\n- 👤 **Guest / Visitor**: Unauthenticated user exploring landing pages, feature specs, and architectural overviews.\n- 🔑 **Authenticated User**: Signed-in member viewing live progress dashboards, interactive graphs, and documentation.\n- 🛠️ **Developer / AI Agent**: Pair programmer running CLI status, marking sub-features done, and maintaining live memory.\n- 🛡️ **Administrator**: Project lead inspecting missing gaps, planning roadmap milestones, and auditing reliability.\n\n## Primary User Flow\n\n\`\`\`text\n[Guest]     --> (Visits App)        --> [Landing / Quickstart]\n                                              |\n                                              v (Selects Spec Explorer)\n[User]      --> [Feature Spec Explorer] <---> [Interactive Visual Graph]\n                     ^                                |\n                     |                                v\n[Developer] --> [CLI / Live Memory]             [Design Drawer]\n\`\`\`\n`
+      content: `## Discovered Categories\n\n| Category | Files Found |\n| :--- | ---: |\n| Routes & Screens | ${routes.length} |\n| UI Components | ${components.length} |\n| Services & APIs | ${services.length} |\n| CLI & Automation | ${cliFiles.length} |\n| Core Domain Logic | ${coreFiles.length} |\n| Tests | ${testFiles.length} |\n| Docs | ${docFiles.length} |\n\nThis inventory is a **static, best-effort baseline** produced by \`npx @shakthizen/what-is-it init\` — it only reflects file-path patterns, not verified feature rationale, UI design, or real user flows.\n\n## Next Step: Deep Agent Analysis\n\nRun \`/what-is-it-init\` in your AI agent chat (Claude Code, Cursor, Antigravity) so it can:\n1. Actually read the code behind this inventory and correct/extend feature rationale (why/how).\n2. Define real actor roles and user flows, with per-screen mockups (\`mockupSvg\`) instead of generic placeholders.\n3. Flag genuinely missing features, bugs, and security gaps it finds — kept separate from this baseline inventory so the two are never conflated.\n`
     }
   ];
 
-  // Synthesize rich visual React Flow User Flow with real screens
+  // Flow: one generic actor connected to whatever real screens/entry-points were
+  // discovered (routes > components > services > cli > core), in that priority order.
+  // No fabricated personas, colors, or layout guidance — the frame node components already
+  // fall back to a neutral generic wireframe when uiGuidelines/visualLayout/mockupSvg are
+  // absent, and the deep agent pass is what should fill those in with real specs.
   const isMobileProject = projectType === 'mobile';
   const defaultFrameType = isMobileProject ? 'mobileFrame' : 'desktopFrame';
+  const actorLabel = projectType === 'cli' || projectType === 'library'
+    ? 'Developer / CLI User'
+    : projectType === 'api'
+      ? 'API Consumer'
+      : 'End User';
+
+  const screenSourcePool = routes.length > 0
+    ? routes
+    : components.length > 0
+      ? components
+      : services.length > 0
+        ? services
+        : cliFiles.length > 0
+          ? cliFiles
+          : coreFiles;
+
+  const screenFiles = screenSourcePool.slice(0, 6);
+  if (screenFiles.length === 0) {
+    screenFiles.push('(no source files discovered)');
+  }
+  if (screenFiles.length === 1) {
+    screenFiles.push('(additional functionality — needs agent review)');
+  }
 
   const nodes: FlowNode[] = [
-    // 1. Actor Nodes
     {
-      id: 'actor-guest',
+      id: 'actor-primary',
       type: 'actorNode',
-      position: { x: 40, y: 100 },
+      position: { x: 40, y: 200 },
       data: {
-        title: 'Guest / Visitor',
-        subtitle: 'Unauthenticated User',
-        actorRole: 'Guest'
+        title: actorLabel,
+        subtitle: 'Auto-detected — refine via /what-is-it-init',
+        actorRole: actorLabel
       }
     },
-    {
-      id: 'actor-user',
-      type: 'actorNode',
-      position: { x: 40, y: 380 },
+    ...screenFiles.map((f, idx) => ({
+      id: `screen-${idx}`,
+      type: defaultFrameType as FlowNode['type'],
+      position: { x: 400 + idx * 380, y: 60 + (idx % 2) * 220 },
       data: {
-        title: 'Authenticated User',
-        subtitle: 'Member / Stakeholder',
-        actorRole: 'User'
+        title: titleFromPath(f) || f,
+        subtitle: f,
+        actorRole: actorLabel,
+        frameType: (isMobileProject ? 'mobile' : 'desktop') as 'mobile' | 'desktop'
       }
-    },
-    {
-      id: 'actor-dev',
-      type: 'actorNode',
-      position: { x: 40, y: 660 },
-      data: {
-        title: 'Developer / AI Agent',
-        subtitle: 'Antigravity / Cursor / CLI',
-        actorRole: 'Developer'
-      }
-    },
-
-    // 2. Screen 1: Landing Page
-    {
-      id: 'screen-landing',
-      type: defaultFrameType,
-      position: { x: 380, y: 60 },
-      data: {
-        title: 'Landing & Project Overview',
-        subtitle: routes[0] || 'src/web/components/LandingPage.tsx',
-        actorRole: 'Guest',
-        frameType: isMobileProject ? 'mobile' : 'desktop',
-        uiGuidelines: {
-          layout: isMobileProject ? 'Single-column vertical scroll' : 'Navbar + Hero Section + Feature Highlights Grid',
-          colors: ['#6366f1', '#090d16', '#ffffff', '#10b981'],
-          typography: 'Display Bold 32px, Body Regular 14px',
-          responsive: 'Fluid container with max-w-6xl auto centering',
-          spacing: 'p-6 desktop, p-4 mobile, gap-6 grid',
-          components: ['StickyHeader', 'HeroBanner', 'FeatureCardGrid', 'CTAButtons'],
-          accessibility: ['WCAG 2.1 AA compliant', 'Visible focus rings', 'ARIA labels on action buttons'],
-          states: {
-            loading: 'Skeleton hero and card placeholders',
-            empty: 'Minimal landing preview with quickstart CTA',
-            error: 'Inline retry banner if telemetry fails'
-          },
-          interactionRules: ['Smooth scroll navigation', 'Hover elevation on cards', 'Mobile drawer menu toggle'],
-          specs: ['Sticky navigation header', 'CTA Button: Open Spec Explorer', 'Zero cumulative layout shift']
-        },
-        visualLayout: {
-          headerTitle: projectName,
-          navItems: ['Features', 'Wiki Docs', 'Visual Graph'],
-          contentBlocks: [
-            { type: 'hero', label: `Hero: ${projectName} Architecture`, height: 65, details: archSummary },
-            { type: 'card', label: 'Domain Features Highlights', height: 50, details: `${features.length} features mapped` }
-          ],
-          bottomNav: isMobileProject ? ['Home', 'Specs', 'Graph'] : undefined
-        },
-        actions: [
-          { label: 'Explore Specs', targetNodeId: 'screen-spec-explorer' },
-          { label: 'Open Graph', targetNodeId: 'screen-graph' }
-        ]
-      }
-    },
-
-    // 3. Screen 2: Feature Spec & Architecture Explorer
-    {
-      id: 'screen-spec-explorer',
-      type: defaultFrameType,
-      position: { x: 820, y: 60 },
-      data: {
-        title: 'Feature Spec & Architecture Explorer',
-        subtitle: 'src/web/components/ProgressDashboard.tsx',
-        actorRole: 'User & Developer',
-        frameType: isMobileProject ? 'mobile' : 'desktop',
-        uiGuidelines: {
-          layout: 'Header KPI Banner + Filter Bar + Domain Feature Cards with Expandable 4 W Drawers',
-          colors: ['#090d16', '#131b2e', '#6366f1', '#10b981', '#ef4444'],
-          typography: 'Inter / System UI, 14px primary, 11px monospace IDs',
-          responsive: 'Fluid grid with responsive column layout',
-          spacing: 'p-6 main workspace, gap-4 metric grid, gap-3 sub-feature rows',
-          components: ['KPIBanner', 'FeatureFilterBar', 'SubFeatureCard', 'PlannedGapsCard', 'RoleActionPills'],
-          accessibility: ['High contrast status glyphs (>= 4.5:1)', 'Keyboard accessible filter dropdowns', 'Screen reader tags'],
-          states: {
-            loading: 'Staggered card shimmer placeholders',
-            empty: 'Empty search state with "Clear Filter" button',
-            error: 'Connection loss banner with SSE auto-reconnect'
-          },
-          interactionRules: ['Real-time SSE updates without page reload', 'Click sub-feature to toggle 4 W drawer', 'Role filter switching'],
-          specs: ['Read-only AI status badges', 'Prominent Planned Gaps callout', 'Live overall progress bar']
-        },
-        visualLayout: {
-          headerTitle: `${projectName} — Feature Spec Explorer`,
-          navItems: ['Specs & Gaps', 'Wiki Docs', 'Visual Graph'],
-          contentBlocks: [
-            { type: 'stat', label: `Overall Progress: ${meta.overallProgress}% (${allImplementedCount}/${allSubFeaturesCount} Sub-Features)`, height: 40 },
-            { type: 'table', label: 'Domain Features, Sub-Features & 4 W Rationale', height: 80 },
-            { type: 'card', label: 'What\'s Missing & Planned Gaps', height: 45, details: 'Reliability, locking, and test gaps' }
-          ],
-          bottomNav: isMobileProject ? ['Specs', 'Wiki', 'Graph'] : undefined
-        },
-        actions: [
-          { label: 'View Flow Graph', targetNodeId: 'screen-graph' },
-          { label: 'Inspect Screen Blueprint', targetNodeId: 'drawer-specs' }
-        ]
-      }
-    },
-
-    // 4. Screen 3: Interactive Visual Graph Canvas
-    {
-      id: 'screen-graph',
-      type: defaultFrameType,
-      position: { x: 1260, y: 60 },
-      data: {
-        title: 'Interactive Visual Graph Canvas',
-        subtitle: 'src/web/components/UserFlowGraph.tsx',
-        actorRole: 'User',
-        frameType: isMobileProject ? 'mobile' : 'desktop',
-        uiGuidelines: {
-          layout: 'Full-viewport SVG React Flow Canvas with Zoom/Pan controls and Right-Rail Drawer',
-          colors: ['#090d16', '#1e293b', '#6366f1', '#10b981'],
-          typography: 'Monospace labels 11px, Heading Semi-bold 14px',
-          responsive: 'Pinch-to-zoom on touch, fluid full canvas',
-          spacing: 'p-0 canvas container with floating controls p-4',
-          components: ['ReactFlowCanvas', 'DesktopFrameNode', 'MobileFrameNode', 'ActorNode', 'FlowControls'],
-          accessibility: ['Keyboard navigation (arrow keys pan)', 'High contrast wireframe borders', 'Accessible tooltips'],
-          states: {
-            loading: 'Canvas loading indicator',
-            empty: 'Empty canvas guide',
-            error: 'Canvas render fallback alert'
-          },
-          interactionRules: ['Click frame node to open design drawer', 'Drag and zoom canvas', 'Animated edge transitions'],
-          specs: ['Custom SVG frame renderers', 'Interactive bezier curve connections', 'Fit-view on mount']
-        },
-        visualLayout: {
-          headerTitle: 'Visual Architecture & User Journeys',
-          navItems: ['Reset Zoom', 'Lock View', 'Export PNG'],
-          contentBlocks: [
-            { type: 'hero', label: 'Interactive React Flow Canvas (SVG Node Network)', height: 95 }
-          ]
-        },
-        actions: [
-          { label: 'Select Node', targetNodeId: 'drawer-specs' }
-        ]
-      }
-    },
-
-    // 5. Screen 4: Blueprint & Design System Drawer (Modal Frame)
-    {
-      id: 'drawer-specs',
-      type: 'modalFrame',
-      position: { x: 1700, y: 80 },
-      data: {
-        title: 'Screen Blueprint & Design Specs Drawer',
-        subtitle: 'src/web/components/Drawer.tsx',
-        actorRole: 'User & Developer',
-        frameType: 'modal',
-        uiGuidelines: {
-          layout: 'Sliding right-rail drawer (width 480px) with frosted glass backdrop',
-          colors: ['#0d131f', '#1e293b', '#6366f1', '#10b981'],
-          typography: 'Heading 16px Bold, Body 13px Regular, Mono 11px Tokens',
-          responsive: 'Full width on mobile, 480px on desktop',
-          spacing: 'p-5 content container, space-y-4 tab groups',
-          components: ['DrawerContainer', 'ColorTokenGrid', 'TypographyList', 'AccessibilityChecklist', 'RawJSONTab'],
-          accessibility: ['Focus trap active when drawer open', 'Escape key closes drawer', 'ARIA role="complementary"'],
-          states: {
-            loading: 'Drawer content shimmer',
-            empty: 'Select a node from the canvas to view design tokens',
-            error: 'Specs load error banner'
-          },
-          interactionRules: ['Close button or backdrop click dismisses', 'Tab switching between Guidelines and Layout Blueprint', 'Copy hex token on click'],
-          specs: ['Live wireframe blueprint blocks', 'WCAG 2.1 AA checklist', 'Zero layout shift']
-        },
-        visualLayout: {
-          headerTitle: 'Design System & UI Blueprint',
-          contentBlocks: [
-            { type: 'list', label: 'Color Tokens & Typography Scale', height: 45 },
-            { type: 'card', label: 'Accessibility & WCAG Checklist', height: 40 },
-            { type: 'table', label: 'Wireframe Content Blocks Blueprint', height: 50 }
-          ]
-        }
-      }
-    }
+    }))
   ];
 
   const edges: FlowEdge[] = [
-    {
-      id: 'e-guest-landing',
-      source: 'actor-guest',
-      target: 'screen-landing',
-      label: 'Visits Project',
-      animated: true
-    },
-    {
-      id: 'e-user-specs',
-      source: 'actor-user',
-      target: 'screen-spec-explorer',
-      label: 'Opens Spec Explorer',
-      animated: true
-    },
-    {
-      id: 'e-dev-specs',
-      source: 'actor-dev',
-      target: 'screen-spec-explorer',
-      label: 'Inspects Features & Gaps',
-      animated: true
-    },
-    {
-      id: 'e-landing-specs',
-      source: 'screen-landing',
-      target: 'screen-spec-explorer',
-      label: 'Clicks "Explore Specs"'
-    },
-    {
-      id: 'e-landing-graph',
-      source: 'screen-landing',
-      target: 'screen-graph',
-      label: 'Clicks "Open Graph"'
-    },
-    {
-      id: 'e-specs-graph',
-      source: 'screen-spec-explorer',
-      target: 'screen-graph',
-      label: 'Switches to Visual Graph'
-    },
-    {
-      id: 'e-graph-drawer',
-      source: 'screen-graph',
-      target: 'drawer-specs',
-      label: 'Selects Frame Node',
-      animated: true
-    }
+    ...screenFiles.map((_, idx) => ({
+      id: `e-actor-screen-${idx}`,
+      source: 'actor-primary',
+      target: `screen-${idx}`,
+      label: idx === 0 ? 'Enters' : undefined,
+      animated: idx === 0
+    })),
+    ...screenFiles.slice(1).map((_, idx) => ({
+      id: `e-screen-${idx}-${idx + 1}`,
+      source: `screen-${idx}`,
+      target: `screen-${idx + 1}`,
+      label: 'Navigates to'
+    }))
   ];
 
   const flows: UserFlow[] = [
     {
-      id: 'main-user-journey',
-      title: 'Primary User & Developer Journey',
-      actorRole: 'Guest, User & Developer',
-      description: 'End-to-end journey from landing visit, feature spec inspection, visual node graph navigation, to screen blueprint drawer.',
+      id: 'discovered-flow',
+      title: 'Discovered Entry Points (Auto-Generated Baseline)',
+      actorRole: actorLabel,
+      description: 'Best-effort flow built from discovered files. Run /what-is-it-init for real user journeys and per-screen mockups.',
       nodes,
       edges
     }

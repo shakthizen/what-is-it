@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Handle, Position } from '@xyflow/react';
 import type { FlowNodeData } from '../../types.js';
+import { sanitizeSvgMarkup } from '../../sanitizeSvg.js';
 
 interface Props {
   data: FlowNodeData;
@@ -8,21 +9,32 @@ interface Props {
 }
 
 export const MobileFrameNode: React.FC<Props> = ({ data, selected }) => {
-  const { title, subtitle, actorRole, visualLayout } = data;
+  const { title, subtitle, actorRole, visualLayout, mockupSvg } = data;
   const bottomNav = visualLayout?.bottomNav || ['Home', 'Explore', 'Profile'];
+  const safeMockup = useMemo(() => (mockupSvg ? sanitizeSvgMarkup(mockupSvg) : null), [mockupSvg]);
+
+  const frameClassName = `group relative transition-all duration-200 cursor-pointer ${
+    selected ? 'ring-2 ring-indigo-500 shadow-2xl shadow-indigo-500/20' : 'hover:ring-1 hover:ring-indigo-400/50'
+  } rounded-[28px]`;
+
+  if (safeMockup) {
+    return (
+      <div className={frameClassName} style={{ width: 220 }}>
+        <Handle type="target" position={Position.Left} className="!bg-indigo-500" />
+        <div
+          className="bg-[#0f172a] border-4 border-slate-700/80 rounded-[28px] overflow-hidden shadow-2xl [&_svg]:w-full [&_svg]:h-auto [&_svg]:block"
+          dangerouslySetInnerHTML={{ __html: safeMockup }}
+        />
+        <Handle type="source" position={Position.Right} className="!bg-indigo-500" />
+      </div>
+    );
+  }
 
   return (
-    <div
-      className={`group relative transition-all duration-200 cursor-pointer ${
-        selected
-          ? 'ring-2 ring-indigo-500 shadow-2xl shadow-indigo-500/20'
-          : 'hover:ring-1 hover:ring-indigo-400/50'
-      } rounded-[28px]`}
-      style={{ width: 220 }}
-    >
+    <div className={frameClassName} style={{ width: 220 }}>
       <Handle type="target" position={Position.Left} className="!bg-indigo-500" />
 
-      {/* Outer Phone Bezel */}
+      {/* Generic fallback wireframe (used when the agent hasn't supplied a real mockupSvg) */}
       <div className="bg-[#0f172a] border-4 border-slate-700/80 rounded-[28px] overflow-hidden shadow-2xl text-xs flex flex-col">
         {/* Dynamic Island / Status Bar */}
         <div className="bg-[#090d16] px-3 pt-2 pb-1.5 flex items-center justify-between border-b border-slate-800">

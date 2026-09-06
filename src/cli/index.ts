@@ -12,7 +12,7 @@ import {
 } from '../core/storage.js';
 import { scanProject, synthesizeProjectData } from '../core/scanner.js';
 import { generateMarkdownOverview } from '../core/markdown.js';
-import { getProjectJsonSchema } from '../core/schema.js';
+import { getProjectJsonSchema, validateProjectData } from '../core/schema.js';
 import { installSkills, installGlobalSkill } from './skills.js';
 import { startServer } from './server.js';
 import {
@@ -244,10 +244,21 @@ taskCmd
 
     task.status = 'done';
     task.completedAt = new Date().toISOString();
+
+    // Tasks are a legacy mirror of SubFeatures; progress is computed from SubFeature.status
+    // (see computeProgress in core/storage.ts), so the linked sub-feature must flip too or
+    // this command will report success while overall progress never moves.
+    if (task.subFeatureId) {
+      const feature = data.features.find(f => f.id === task.featureId);
+      const sub = feature?.subFeatures?.find(sf => sf.id === task.subFeatureId);
+      if (sub) sub.status = 'implemented';
+    }
+
     saveProjectData(cwd, data);
+    const updated = loadProjectData(cwd) ?? data;
 
     console.log(formatCavemanSuccess('TASK COMPLETED', task.id, `"${task.title}"`));
-    console.log(`${pc.dim('Progress now:')} ${pc.green(`${data.meta.overallProgress}%`)}`);
+    console.log(`${pc.dim('Progress now:')} ${pc.green(`${updated.meta.overallProgress}%`)}`);
   });
 
 taskCmd
@@ -349,6 +360,10 @@ program
     try {
       const raw = fs.readFileSync(fullPath, 'utf-8');
       const incoming = JSON.parse(raw) as any;
+      if (!validateProjectData(incoming)) {
+        console.error(formatCavemanError('Import file does not match the expected project data shape. Run `npx @shakthizen/what-is-it schema` to inspect the required structure.'));
+        process.exit(1);
+      }
       saveProjectData(cwd, incoming);
       console.log(formatCavemanSuccess('PROJECT DATA IMPORTED', path.basename(filePath)));
 

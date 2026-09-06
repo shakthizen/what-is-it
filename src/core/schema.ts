@@ -71,6 +71,7 @@ export interface Feature {
 export interface Task {
   id: string;
   featureId: string;
+  subFeatureId?: string; // Links this legacy task to the SubFeature it mirrors, so completing it can flip real progress
   title: string;
   status: TaskStatus;
   priority: Priority;
@@ -142,6 +143,13 @@ export interface FlowNodeData {
   frameType?: FrameType;
   uiGuidelines?: UIGuidelines;
   visualLayout?: VisualLayoutBlueprint;
+  /**
+   * Agent-generated inline SVG markup (a single <svg>...</svg> string) representing the
+   * actual mockup for this screen. When present, frame node components render this instead
+   * of their generic built-in wireframe template. Sanitized before render (no <script>,
+   * event handler attributes, or javascript: URIs) since it can arrive via untrusted import.
+   */
+  mockupSvg?: string;
   actions?: Array<{ label: string; targetNodeId: string; type?: string }>;
   notes?: string;
 }
@@ -177,6 +185,34 @@ export interface ProjectData {
   tasks?: Task[];
   wiki: WikiPage[];
   flows: UserFlow[];
+}
+
+/**
+ * Structural guard for untrusted incoming payloads (HTTP API body, `import` file).
+ * Not a full JSON-Schema validation — just enough shape-checking to reject garbage
+ * before it gets zlib-compressed and persisted as the project's source of truth.
+ */
+export function validateProjectData(value: unknown): value is ProjectData {
+  if (!value || typeof value !== 'object') return false;
+  const v = value as Record<string, any>;
+  if (typeof v.schemaVersion !== 'number') return false;
+  if (!v.meta || typeof v.meta !== 'object') return false;
+  if (typeof v.meta.name !== 'string' || typeof v.meta.projectType !== 'string') return false;
+  if (!Array.isArray(v.features)) return false;
+  if (!Array.isArray(v.wiki)) return false;
+  if (!Array.isArray(v.flows)) return false;
+  if (v.tasks !== undefined && !Array.isArray(v.tasks)) return false;
+
+  for (const f of v.features) {
+    if (!f || typeof f !== 'object') return false;
+    if (typeof f.id !== 'string' || typeof f.title !== 'string') return false;
+    if (f.subFeatures !== undefined && !Array.isArray(f.subFeatures)) return false;
+  }
+  for (const w of v.wiki) {
+    if (!w || typeof w !== 'object') return false;
+    if (typeof w.id !== 'string' || typeof w.content !== 'string') return false;
+  }
+  return true;
 }
 
 export function getProjectJsonSchema(): Record<string, any> {
