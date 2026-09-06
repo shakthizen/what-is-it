@@ -35,7 +35,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ data, onOpenDocs }) =>
           <div className="flex items-center gap-2">
             <span className="font-bold text-white tracking-tight text-sm">what-is-it</span>
             <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">
-              v1.1.0
+              v1.1.1
             </span>
           </div>
         </div>

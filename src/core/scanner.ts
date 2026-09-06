@@ -225,7 +225,7 @@ export function scanProject(rootDir: string): ScanContext {
     testFiles,
     docFiles,
     recentCommits,
-    version: pkgJson?.version || '1.1.0'
+    version: pkgJson?.version || '0.1.0'
   };
 }
 
@@ -428,7 +428,7 @@ export function synthesizeProjectData(context: ScanContext): ProjectData {
     projectType,
     frameworks,
     architectureSummary: archSummary,
-    version: version || '1.1.0',
+    version: version || '0.1.0',
     updatedAt: new Date().toISOString(),
     overallProgress: 0
   };

@@ -378,7 +378,7 @@ function scanProject(rootDir) {
     testFiles,
     docFiles,
     recentCommits,
-    version: pkgJson?.version || "1.1.0"
+    version: pkgJson?.version || "0.1.0"
   };
 }
 function slugify(input) {
@@ -537,7 +537,7 @@ function synthesizeProjectData(context) {
     projectType,
     frameworks,
     architectureSummary: archSummary,
-    version: version || "1.1.0",
+    version: version || "0.1.0",
     updatedAt: (/* @__PURE__ */ new Date()).toISOString(),
     overallProgress: 0
   };
@@ -1035,4 +1035,4 @@ export {
   validateProjectData,
   getProjectJsonSchema
 };
-//# sourceMappingURL=chunk-EL2RN3PY.js.map
+//# sourceMappingURL=chunk-CXGKVEMC.js.map

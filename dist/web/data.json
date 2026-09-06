@@ -14,7 +14,7 @@
     ],
     "architectureSummary": "A CLI (bin/what-is-it.js) that scans a target repo and persists a compressed binary state (.what-is-it.bin) describing its features, tasks, wiki docs, and React-Flow user journeys. `init` builds a fast, honest file-path-based baseline; the agent-run `/what-is-it-init` deep pass replaces it with a verified model (real rationale, real flows, real per-screen SVG mockups). A local Node HTTP server exposes that state to a React dashboard (Feature Spec Explorer, Wiki Docs, Visual Flow Graph) over a REST API + SSE, with same-origin enforcement and payload validation on every write. The same bundle also exports statically for GitHub Pages.",
     "version": "1.1.0",
-    "updatedAt": "2026-09-06T08:32:13.537Z",
+    "updatedAt": "2026-09-06T09:15:06.105Z",
     "overallProgress": 73
   },
   "features": [

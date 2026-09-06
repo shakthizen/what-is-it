@@ -1,6 +1,6 @@
 {
   "name": "@shakthizen/what-is-it",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Live Project Memory & Interactive Wiki for Vibe Coding",
   "main": "./dist/core/index.js",
   "types": "./dist/core/index.d.ts",

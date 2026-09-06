@@ -8,7 +8,7 @@ import {
   scanProject,
   synthesizeProjectData,
   validateProjectData
-} from "../chunk-EL2RN3PY.js";
+} from "../chunk-CXGKVEMC.js";
 
 // src/cli/index.ts
 import { Command } from "commander";
@@ -633,7 +633,7 @@ function formatCavemanError(err) {
 
 // src/cli/index.ts
 var program = new Command();
-program.name("what-is-it").description("Live Project Memory, Task Tracker & Interactive Wiki for Vibe Coding").version("1.1.0");
+program.name("what-is-it").description("Live Project Memory, Task Tracker & Interactive Wiki for Vibe Coding").version("1.1.1");
 function askQuestion(query) {
   if (!process.stdin.isTTY) return Promise.resolve("");
   const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
