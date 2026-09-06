@@ -2,6 +2,10 @@
   "name": "@shakthizen/what-is-it",
   "version": "1.1.1",
   "description": "Live Project Memory & Interactive Wiki for Vibe Coding",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/shakthizen/what-is-it.git"
+  },
   "main": "./dist/core/index.js",
   "types": "./dist/core/index.d.ts",
   "type": "module",
