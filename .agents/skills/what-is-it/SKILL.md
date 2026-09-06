@@ -50,13 +50,15 @@ This project uses `@shakthizen/what-is-it` to track tasks, architecture, and UI 
 - Launch web dashboard: `npx @shakthizen/what-is-it`
 
 ### 6. DEEP CODEBASE BOOTSTRAP (/what-is-it-init):
-- When user runs `/what-is-it-init` in chat:
-  1. Deeply analyze this codebase (manifests, routes, components, services, database models).
-  2. Formulate real features, tasks with (Why, How, Where, When), multi-page Wiki docs, and React Flow user journeys with SVG mockup frames.
-  3. Run `npx @shakthizen/what-is-it schema` if you need the exact JSON schema.
-  4. Save the synthesized state to a temporary JSON file (e.g. `scratch/what-is-it-state.json`).
-  5. Execute: `npx @shakthizen/what-is-it import scratch/what-is-it-state.json`.
-  6. Run `npx @shakthizen/what-is-it status` to confirm.
+- `init` already wrote a static, best-effort baseline (file-path pattern matching only, no code read) — export it first with `npx @shakthizen/what-is-it export --format json` to see what it found.
+- When user runs `/what-is-it-init` in chat, do the deep pass in this order — do not skip ahead to step 2 before step 1 is done:
+  1. **Verify & correct the real feature set and user flows first**, independent of anything missing/broken/insecure. Actually read the routes, components, services, and domain models; replace the baseline's generic "discovered file" sub-features with real `why`/`how` rationale, real actor roles, and real user flows/edges that reflect how the app is actually used.
+  2. For each screen in a flow, generate a real per-screen mockup as inline SVG and put it in `FlowNode.data.mockupSvg` (a single `<svg>...</svg>` string reflecting that screen's actual layout) instead of leaving it to the generic built-in wireframe template.
+  3. **Only after** the real feature/flow model is accurate, layer in what's missing: gaps, bugs, and security issues you find — as separate `missingDetails` / additional sub-features explicitly marked `status: "missing"`, never mixed into the "what actually exists" inventory from step 1.
+  4. Run `npx @shakthizen/what-is-it schema` if you need the exact JSON schema.
+  5. Save the synthesized state to a temporary JSON file (e.g. `scratch/what-is-it-state.json`).
+  6. Execute: `npx @shakthizen/what-is-it import scratch/what-is-it-state.json`.
+  7. Run `npx @shakthizen/what-is-it status` to confirm.
 
 ### 7. CORE TENETS:
 - **No Vibe Amnesia**: If it is not recorded in `.what-is-it.bin`, future agent sessions will lose context.

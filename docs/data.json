@@ -2,795 +2,431 @@
   "schemaVersion": 1,
   "meta": {
     "name": "@shakthizen/what-is-it",
-    "description": "Live Project Memory & Interactive Wiki for Vibe Coding",
+    "description": "Live Project Memory, Task Tracker & Interactive Wiki for Vibe Coding",
     "projectType": "cli",
     "frameworks": [
       "React",
       "Vite",
       "Tailwind CSS",
-      "CLI"
+      "CLI",
+      "@xyflow/react",
+      "Commander"
     ],
-    "architectureSummary": "@shakthizen/what-is-it is a cli project built with React, Vite, Tailwind CSS, CLI. It contains 41 tracked files across 0 routes, 11 components, 0 services/APIs, and 10 core/CLI modules.",
+    "architectureSummary": "A CLI (bin/what-is-it.js) that scans a target repo and persists a compressed binary state (.what-is-it.bin) describing its features, tasks, wiki docs, and React-Flow user journeys. `init` builds a fast, honest file-path-based baseline; the agent-run `/what-is-it-init` deep pass replaces it with a verified model (real rationale, real flows, real per-screen SVG mockups). A local Node HTTP server exposes that state to a React dashboard (Feature Spec Explorer, Wiki Docs, Visual Flow Graph) over a REST API + SSE, with same-origin enforcement and payload validation on every write. The same bundle also exports statically for GitHub Pages.",
     "version": "1.1.0",
-    "updatedAt": "2026-09-06T07:33:37.904Z",
-    "overallProgress": 72
+    "updatedAt": "2026-09-06T08:32:13.537Z",
+    "overallProgress": 73
   },
   "features": [
     {
-      "id": "feat-core-engine",
-      "title": "Core Storage & Data Engine",
-      "description": "Binary compression persistence, typed domain models, and atomic state synchronization.",
+      "id": "feat-storage",
+      "title": "Core Storage & Schema Engine",
+      "description": "Zlib-compressed binary persistence, schema-driven progress computation, and payload validation.",
       "category": "Core Engine",
       "status": "in_progress",
-      "progress": 67,
+      "progress": 75,
       "order": 1,
       "subFeatures": [
         {
-          "id": "sub-core-persistence",
-          "title": "Compressed Binary State & Storage Engine",
-          "description": "Zlib-deflated binary serialization with magic header verification for high-density persistence.",
+          "id": "sub-storage-binary",
+          "title": "Compressed Binary Persistence",
           "status": "implemented",
-          "what": "Atomic binary read/write pipeline (.what-is-it.bin) with checksum and fallback decompression.",
-          "why": "Eliminates file bloat and enables instant zero-latency loads for multi-agent workflows.",
-          "how": "Node.js zlib deflateSync (level 9) with atomic temporary file renaming.",
+          "what": "Reads/writes .what-is-it.bin with a magic header, zlib deflate/inflate, and atomic rename-on-write.",
+          "why": "Zero-bloat, instant-load state file that survives git diffs cleanly.",
+          "how": "Node zlib.deflateSync/inflateSync + tmp-file rename in saveProjectData/loadProjectData.",
           "where": "src/core/storage.ts",
           "when": "Phase 1 MVP"
         },
         {
-          "id": "sub-core-schema",
-          "title": "Type-Safe Feature Spec & Contract Validation",
-          "description": "Strict TypeScript interfaces for nested features, sub-features, user stories, and role actions.",
+          "id": "sub-storage-progress",
+          "title": "Schema-Driven Progress Computation",
           "status": "implemented",
-          "what": "Runtime JSON Schema and compile-time TypeScript models covering all project entities.",
-          "why": "Guarantees structural validity across CLI, web dashboard, and AI agent interactions.",
-          "how": "Exported JSON schema builder and TypeScript strict type definitions.",
-          "where": "src/core/schema.ts",
+          "what": "computeProgress() derives feature/overall completion from SubFeature.status when subFeatures exist, falling back to legacy Task.status only when they don't.",
+          "why": "Progress must reflect verified capability state, not a flat todo-list count.",
+          "how": "Weighted ratio of implemented sub-features per feature, aggregated for overallProgress.",
+          "where": "src/core/storage.ts",
           "when": "Phase 1 MVP"
         },
         {
-          "id": "sub-core-lock",
+          "id": "sub-storage-validate",
+          "title": "Payload Validation Guard",
+          "status": "implemented",
+          "what": "validateProjectData() structurally checks incoming JSON (schemaVersion, meta, features[], wiki[], flows[]) before it's ever compressed and written to disk.",
+          "why": "The CLI `import` and the server's POST /api/project used to accept arbitrary JSON with zero validation, risking silent state corruption.",
+          "how": "Manual shape-check function exported from schema.ts, called from both the CLI import command and the HTTP write endpoint.",
+          "where": "src/core/schema.ts",
+          "when": "Security hardening pass"
+        },
+        {
+          "id": "sub-storage-lock",
           "title": "Atomic Multi-Process File Locking",
-          "description": "Advisory file locking to prevent corrupted state when multiple background agents write concurrently.",
           "status": "missing",
-          "what": "Advisory file lock protocol with timeout, auto-retry, and stale lock eviction.",
-          "why": "Multiple AI agents or background tasks writing simultaneously can race and corrupt state.",
-          "how": "Implement file descriptor locking or lockfile mechanism before atomic rename.",
-          "where": "src/core/storage.ts, src/core/lock.ts",
-          "when": "Milestone 2 (Reliability)"
+          "what": "Advisory file lock protocol with timeout, auto-retry, and stale-lock eviction.",
+          "why": "Two agents/background tasks writing .what-is-it.bin at once can race past the atomic-rename step and drop one write.",
+          "how": "File descriptor locking or a lockfile convention before the atomic rename in saveProjectData.",
+          "where": "src/core/storage.ts",
+          "when": "Not yet scheduled"
         }
-      ],
-      "roleActions": [
-        {
-          "id": "ra-core-1",
-          "actorRole": "Developer",
-          "action": "Load and inspect binary project memory state",
-          "status": "implemented",
-          "targetScreenOrEndpoint": "CLI / Storage Engine"
-        },
-        {
-          "id": "ra-core-2",
-          "actorRole": "Developer",
-          "action": "Perform concurrent atomic writes safely without race conditions",
-          "status": "missing",
-          "targetScreenOrEndpoint": "src/core/lock.ts"
-        }
-      ],
-      "userStories": [
-        {
-          "id": "us-core-1",
-          "actorRole": "Developer",
-          "story": "As a Developer, I want binary compressed project memory so that large architectures load instantly with zero token bloat.",
-          "status": "implemented",
-          "acceptanceCriteria": [
-            "Binary files under 50KB for large repos",
-            "Load times < 15ms",
-            "Atomic write reliability"
-          ]
-        },
-        {
-          "id": "us-core-2",
-          "actorRole": "Developer",
-          "story": "As a Developer, I want multi-process locking so that background subagents do not overwrite each other.",
-          "status": "missing",
-          "acceptanceCriteria": [
-            "Advisory lock before file write",
-            "Stale lock auto-cleanup after 10s",
-            "Graceful retry queue"
-          ]
-        }
-      ],
-      "missingDetails": {
-        "whatsMissing": [
-          "Atomic lockfile protocol for concurrent multi-agent write operations",
-          "State migration engine for forward/backward binary schema compatibility"
-        ],
-        "why": "Safeguard binary integrity when multiple subagents run parallel write tasks.",
-        "how": "Implement advisory file locking before write and add schema version upgrade hooks.",
-        "where": [
-          "src/core/storage.ts",
-          "src/core/lock.ts"
-        ],
-        "when": "Next Milestone (Sprint 2)"
-      }
+      ]
     },
     {
-      "id": "feat-cli-tools",
-      "title": "CLI Tooling & Automation Interface",
-      "description": "Command line utilities, caveman token-efficient status formatting, and scratch cleanup.",
-      "category": "Tooling & CLI",
-      "status": "in_progress",
-      "progress": 75,
+      "id": "feat-scanner",
+      "title": "Codebase Scanner & Baseline Synthesis",
+      "description": "The two-stage model: a fast, honest file-path scan now backs `init`, with a separate deep agent pass for real understanding.",
+      "category": "Core Engine",
+      "status": "completed",
+      "progress": 100,
       "order": 2,
       "subFeatures": [
         {
-          "id": "sub-cli-dispatcher",
-          "title": "CLI Command Suite & Terminal Dispatcher",
-          "description": "Full CLI suite with init, status, task, feature, export, import, schema, and UI launchers.",
+          "id": "sub-scanner-baseline",
+          "title": "Real File-Based Feature Inventory",
           "status": "implemented",
-          "what": "Comprehensive command line interface with arguments parsing and colored output.",
-          "why": "Enables seamless control by both humans in terminals and AI agents via shell execution.",
-          "how": "Commander.js option definitions, picocolors output formatting, and process exit codes.",
-          "where": "src/cli/index.ts",
-          "when": "Phase 1 MVP"
+          "what": "synthesizeProjectData() builds features/wiki/flows purely from what scanProject() actually found (real routes/components/services/CLI/core files) instead of a fixed narrative.",
+          "why": "The previous synthesizer was hardcoded to describe what-is-it's own architecture on every project regardless of what was scanned — this was the core 'inaccurate init' defect.",
+          "how": "One Feature per non-empty discovered category, one SubFeature per file (capped, with an overflow marker), plus always-present Testing/Documentation coverage features that honestly report `missing` when nothing was found.",
+          "where": "src/core/scanner.ts",
+          "when": "Accuracy rewrite"
         },
         {
-          "id": "sub-cli-caveman",
-          "title": "Caveman-Style Token-Efficient Status Formatter",
-          "description": "Concise, high-density terminal status output optimized for LLM token efficiency.",
+          "id": "sub-scanner-two-phase",
+          "title": "Two-Phase Init → Deep-Pass Model",
           "status": "implemented",
-          "what": "Formatted UGG/GRR caveman status highlighting overall progress, features, and missing gaps.",
-          "why": "Minimizes LLM prompt token consumption while communicating maximum actionable context.",
-          "how": "Custom string templater with color-coded ANSI glyphs and priority filters.",
-          "where": "src/cli/caveman.ts",
-          "when": "Phase 1 MVP"
-        },
-        {
-          "id": "sub-cli-cleaner",
-          "title": "Automatic Scratch State Cleaner on Import",
-          "description": "Automatically cleans up temporary scratch state JSON files and folders after binary update.",
-          "status": "implemented",
-          "what": "Unlinks temporary scratch json files and deletes empty scratch directories on successful import.",
-          "why": "Prevents workspace clutter and prevents agents from reading stale temporary files.",
-          "how": "File unlink hook with parent directory emptiness check in the CLI import action.",
-          "where": "src/cli/index.ts",
-          "when": "Current Sprint"
-        },
-        {
-          "id": "sub-cli-wizard",
-          "title": "Interactive Feature & Milestone CLI Prompt Wizard",
-          "description": "Interactive terminal prompts with tab completion for scoping features and sub-features.",
-          "status": "missing",
-          "what": "Terminal interactive questionnaire for guiding developers through feature gap definitions.",
-          "why": "Accelerates feature creation for developers who prefer interactive terminal guidance.",
-          "how": "Integrate @clack/prompts or enquirer for interactive fuzzy selection and validation.",
-          "where": "src/cli/wizard.ts, src/cli/index.ts",
-          "when": "Milestone 3"
+          "what": "`init` never fabricates gaps or rationale; `/what-is-it-init` (agent-driven) is the only place real Why/How and `missingDetails` get written.",
+          "why": "Keeps 'what actually exists' (verifiable from files) strictly separate from 'what's missing/broken' (a judgment call requiring code comprehension).",
+          "how": "init's baseline sub-features carry neutral 'discovered, not yet verified' language; the /what-is-it-init workflow instructs Phase 1 (verify real features/flows) before Phase 2 (flag gaps).",
+          "where": "src/core/scanner.ts, src/cli/skills.ts",
+          "when": "Accuracy rewrite"
         }
-      ],
-      "roleActions": [
-        {
-          "id": "ra-cli-1",
-          "actorRole": "Developer",
-          "action": "Query concise caveman status with sub-features and gaps",
-          "status": "implemented",
-          "targetScreenOrEndpoint": "npx @shakthizen/what-is-it status"
-        },
-        {
-          "id": "ra-cli-2",
-          "actorRole": "Developer",
-          "action": "Import state and automatically clean temporary scratch files",
-          "status": "implemented",
-          "targetScreenOrEndpoint": "npx @shakthizen/what-is-it import <file>"
-        },
-        {
-          "id": "ra-cli-3",
-          "actorRole": "Developer",
-          "action": "Launch interactive terminal wizard to define features and gaps",
-          "status": "missing",
-          "targetScreenOrEndpoint": "src/cli/wizard.ts"
-        }
-      ],
-      "userStories": [
-        {
-          "id": "us-cli-1",
-          "actorRole": "Developer",
-          "story": "As a Developer, I want a concise caveman CLI status so that my AI coding assistant reads minimal tokens while staying oriented.",
-          "status": "implemented",
-          "acceptanceCriteria": [
-            "Status output under 30 lines",
-            "Includes feature progress and planned gaps",
-            "Lists quick AI action commands"
-          ]
-        },
-        {
-          "id": "us-cli-2",
-          "actorRole": "Developer",
-          "story": "As a Developer, I want scratch state files to be deleted after import so that my repository remains clean.",
-          "status": "implemented",
-          "acceptanceCriteria": [
-            "Scratch json file unlinked upon import",
-            "Empty scratch dir pruned",
-            "Confirmation printed to terminal"
-          ]
-        }
-      ],
-      "missingDetails": {
-        "whatsMissing": [
-          "Interactive feature scoping wizard with tab auto-completion",
-          "Background daemon mode with real-time file change notifications"
-        ],
-        "why": "Provide an intuitive interactive setup experience for terminal-heavy developers.",
-        "how": "Add Clack/Enquirer prompts and integrate an optional background fs.watch daemon.",
-        "where": [
-          "src/cli/wizard.ts",
-          "src/cli/daemon.ts"
-        ],
-        "when": "Milestone 3"
-      }
+      ]
     },
     {
-      "id": "feat-web-dashboard",
-      "title": "Visual Dashboard & Spec Explorer",
-      "description": "Interactive web dashboard, feature spec viewer, SVG flow graph canvas, and design system inspector.",
-      "category": "Frontend & UI",
+      "id": "feat-cli",
+      "title": "CLI Command Suite",
+      "description": "init/status/task/feature/export/import/schema/install-skill commands and the default local-dashboard launcher.",
+      "category": "Tooling & CLI",
       "status": "in_progress",
-      "progress": 75,
+      "progress": 50,
       "order": 3,
       "subFeatures": [
         {
-          "id": "sub-web-spec-explorer",
-          "title": "Feature Spec & Architecture Explorer",
-          "description": "Rich view displaying main features, nested sub-features with 4 W's, user stories, role actions, and planned gaps.",
+          "id": "sub-cli-commands",
+          "title": "Command Dispatcher",
           "status": "implemented",
-          "what": "Interactive dashboard replacing flat task lists with deep architectural feature cards and gap summaries.",
-          "why": "Gives humans and agents total clarity on what capabilities exist, who uses them, and what is missing.",
-          "how": "React components with Tailwind CSS cards, filter bars, status pills, and expandable 4 W drawers.",
-          "where": "src/web/components/ProgressDashboard.tsx",
-          "when": "Current Sprint"
-        },
-        {
-          "id": "sub-web-flow-graph",
-          "title": "Interactive SVG Node Graph & Wireframe Canvas",
-          "description": "Visual React Flow canvas rendering desktop, mobile, and modal frames connected to actor roles.",
-          "status": "implemented",
-          "what": "Multi-screen UI topology visualization with custom frame renderers and edge connectors.",
-          "why": "Allows visual verification of user journeys, design guidelines, and screen layouts.",
-          "how": "@xyflow/react custom node implementations (DesktopFrameNode, MobileFrameNode, ModalFrameNode, ActorNode).",
-          "where": "src/web/components/UserFlowGraph.tsx",
+          "what": "Commander.js-based suite: init, status, schema, install-skill, task add/done/list, feature add, export, import.",
+          "why": "Single entry point for both humans and agents to drive project memory from a shell.",
+          "how": "Commander option definitions with picocolors output.",
+          "where": "src/cli/index.ts",
           "when": "Phase 1 MVP"
         },
         {
-          "id": "sub-web-drawer",
-          "title": "Design System & Component Specs Drawer",
-          "description": "Right-rail sliding inspector detailing typography, color tokens, responsive breakpoints, and WCAG accessibility.",
+          "id": "sub-cli-task-link",
+          "title": "Task ↔ SubFeature Linked Completion",
           "status": "implemented",
-          "what": "Detailed sliding inspector presenting UI guidelines, state specs (empty, loading, error), and layout blocks.",
-          "why": "Provides full UI design system specs for any selected screen node.",
-          "how": "Collapsible slide-over drawer triggered by node selection with tabbed specs and JSON inspector.",
-          "where": "src/web/components/Drawer.tsx",
-          "when": "Phase 1 MVP"
+          "what": "Task now carries an optional subFeatureId; `task done <id>` flips both the task and its linked SubFeature to implemented.",
+          "why": "Previously `task done` only mutated the legacy Task list, which computeProgress ignores once a feature has subFeatures — marking tasks done had no visible effect on progress at all.",
+          "how": "scanner.ts sets subFeatureId when synthesizing tasks 1:1 from sub-features; index.ts's `task done` handler looks up and updates the linked sub-feature before saving.",
+          "where": "src/cli/index.ts, src/core/scanner.ts, src/core/schema.ts",
+          "when": "Progress-tracking fix"
         },
         {
-          "id": "sub-web-theme-touch",
-          "title": "Dark/Light Theme Switcher & Mobile Gestures",
-          "description": "Theme preference toggle and responsive mobile touch gestures (pinch-zoom, swipe tabs).",
+          "id": "sub-cli-subfeature-mutator",
+          "title": "Direct Sub-Feature Status CLI Command",
           "status": "missing",
-          "what": "Persistent theme switching and mobile touch gesture support for the visual canvas.",
-          "why": "Enhances usability on mobile devices and supports user accessibility preferences.",
-          "how": "Tailwind dark class toggle with CSS variables and touch event handlers on the canvas viewport.",
-          "where": "src/web/components/ThemeToggle.tsx, src/web/components/UserFlowGraph.tsx",
-          "when": "Milestone 2"
-        }
-      ],
-      "roleActions": [
-        {
-          "id": "ra-web-1",
-          "actorRole": "User",
-          "action": "Browse project features, sub-features, and missing planned gaps",
-          "status": "implemented",
-          "targetScreenOrEndpoint": "Web Dashboard / Feature Spec Explorer"
+          "what": "A command like `feature subfeature done <id>` to flip a single SubFeature's status without a full JSON re-import.",
+          "why": "Right now the only way to change a SubFeature's status outside the Task-linked path is a complete `import` of a new state file.",
+          "how": "New `feature subfeature` subcommand touching `features[].subFeatures[].status` directly.",
+          "where": "src/cli/index.ts",
+          "when": "Not yet scheduled"
         },
         {
-          "id": "ra-web-2",
-          "actorRole": "User",
-          "action": "Inspect interactive SVG user flow graph and screen wireframes",
-          "status": "implemented",
-          "targetScreenOrEndpoint": "Web Dashboard / Visual Graph Canvas"
-        },
-        {
-          "id": "ra-web-3",
-          "actorRole": "User",
-          "action": "Toggle between dark and light themes or use touch gestures on mobile",
+          "id": "sub-cli-wizard",
+          "title": "Interactive Feature & Milestone CLI Wizard",
           "status": "missing",
-          "targetScreenOrEndpoint": "Web Dashboard / Theme Switcher"
+          "what": "Terminal questionnaire for guiding developers through feature/gap definitions interactively.",
+          "why": "Accelerates setup for developers who prefer prompts over hand-writing JSON.",
+          "how": "Integrate @clack/prompts or enquirer.",
+          "where": "src/cli/wizard.ts (does not exist yet)",
+          "when": "Not yet scheduled"
         }
-      ],
-      "userStories": [
-        {
-          "id": "us-web-1",
-          "actorRole": "User",
-          "story": "As a User, I want to explore feature specs and missing gaps so that I understand product capabilities without reading raw code.",
-          "status": "implemented",
-          "acceptanceCriteria": [
-            "Clear status glyphs (implemented, in-progress, missing)",
-            "Search and filter by category or status",
-            "Expandable 4 W details"
-          ]
-        },
-        {
-          "id": "us-web-2",
-          "actorRole": "User",
-          "story": "As a User, I want to inspect screen wireframes and design system rules so that UI components maintain visual consistency.",
-          "status": "implemented",
-          "acceptanceCriteria": [
-            "Desktop and mobile frame nodes",
-            "Drawer shows typography, colors, and accessibility specs",
-            "Interactive edge connections"
-          ]
-        }
-      ],
-      "missingDetails": {
-        "whatsMissing": [
-          "Light / Dark theme toggle with system preference auto-detection",
-          "Mobile touch gesture gestures and canvas minimap zoom-to-fit toggle"
-        ],
-        "why": "Provide high-grade accessibility across diverse screen sizes and lighting environments.",
-        "how": "Add theme context provider and configure React Flow touch gesture handlers.",
-        "where": [
-          "src/web/components/Navbar.tsx",
-          "src/web/components/UserFlowGraph.tsx"
-        ],
-        "when": "Milestone 2"
-      }
+      ]
     },
     {
-      "id": "feat-api-sync",
-      "title": "Data Flow & Real-Time Synchronization",
-      "description": "Embedded HTTP server, Server-Sent Events (SSE) live updates, and resilient state synchronization.",
-      "category": "Networking & Sync",
-      "status": "in_progress",
-      "progress": 67,
+      "id": "feat-skills",
+      "title": "Multi-Agent Skill & Slash Command Installer",
+      "description": "Generates SKILL.md, per-IDE slash commands, and the AGENTS.md/CLAUDE.md/.cursorrules onboarding block.",
+      "category": "Tooling & CLI",
+      "status": "completed",
+      "progress": 100,
       "order": 4,
       "subFeatures": [
         {
-          "id": "sub-api-server",
-          "title": "Embedded Micro-Server & Static Asset Server",
-          "description": "Zero-dependency Node HTTP micro-server serving pre-bundled SPA assets and REST endpoints.",
+          "id": "sub-skills-installer",
+          "title": "Cross-IDE Rule & Slash Command Generator",
           "status": "implemented",
-          "what": "Local web server mounted on port 3456 serving the visual viewer without external runtime dependencies.",
-          "why": "Enables instant web dashboard launching with a single npx command without complex server infrastructure.",
-          "how": "Node.js http module with MIME type resolution and gzip stream support.",
-          "where": "src/cli/server.ts",
-          "when": "Phase 1 MVP"
-        },
-        {
-          "id": "sub-api-sse",
-          "title": "Live Server-Sent Events (SSE) Broadcast Pipeline",
-          "description": "Push-based SSE channel streaming instantaneous state mutations directly to connected browser clients.",
-          "status": "implemented",
-          "what": "Real-time broadcast mechanism pushing updated project state on every CLI mutation.",
-          "why": "Eliminates manual browser refresh and gives developers immediate feedback as AI agents work.",
-          "how": "text/event-stream response stream with keep-alive heartbeat and reconnection support.",
-          "where": "src/cli/server.ts",
-          "when": "Phase 1 MVP"
-        },
-        {
-          "id": "sub-api-reconnect",
-          "title": "Resilient SSE Reconnection with Exponential Backoff",
-          "description": "Client-side event source reconnect handler with exponential backoff and offline visual banners.",
-          "status": "missing",
-          "what": "Robust client-side SSE reconnect protocol with visual disconnection banner and automatic retry.",
-          "why": "Prevents broken UI state when server restarts or terminal process pauses.",
-          "how": "Wrap EventSource with reconnection backoff timer and toast notifications.",
-          "where": "src/web/App.tsx, src/web/components/Navbar.tsx",
-          "when": "Milestone 2"
-        }
-      ],
-      "roleActions": [
-        {
-          "id": "ra-api-1",
-          "actorRole": "Developer",
-          "action": "Stream live updates to connected browsers when agents modify tasks or features",
-          "status": "implemented",
-          "targetScreenOrEndpoint": "GET /api/events (SSE)"
-        },
-        {
-          "id": "ra-api-2",
-          "actorRole": "User",
-          "action": "Automatically reconnect to server if terminal restarts without losing view state",
-          "status": "missing",
-          "targetScreenOrEndpoint": "src/web/App.tsx"
-        }
-      ],
-      "userStories": [
-        {
-          "id": "us-api-1",
-          "actorRole": "Developer",
-          "story": "As a Developer, I want instant live updates in my open browser so that I watch my agent complete work in real time.",
-          "status": "implemented",
-          "acceptanceCriteria": [
-            "SSE broadcast on task completion",
-            "Browser updates < 100ms",
-            "No manual refresh required"
-          ]
-        }
-      ],
-      "missingDetails": {
-        "whatsMissing": [
-          "Exponential backoff reconnection interceptor for client EventSource",
-          "Offline fallback caching when server connection is lost"
-        ],
-        "why": "Ensure seamless browser experience even if developer stops and restarts the CLI server.",
-        "how": "Implement exponential backoff in App.tsx EventSource listener with state persistence.",
-        "where": [
-          "src/web/App.tsx"
-        ],
-        "when": "Milestone 2"
-      }
-    },
-    {
-      "id": "feat-qa-docs",
-      "title": "Verification, Docs & Multi-Agent Protocols",
-      "description": "Multi-agent skill installation, synchronized markdown documentation, and automated test suites.",
-      "category": "Verification & QA",
-      "status": "in_progress",
-      "progress": 75,
-      "order": 5,
-      "subFeatures": [
-        {
-          "id": "sub-qa-skill-installer",
-          "title": "Multi-Agent Rules & Skill Generator",
-          "description": "Generates and installs SKILL.md, AGENTS.md, CLAUDE.md, and .cursorrules across all major IDE agents.",
-          "status": "implemented",
-          "what": "Universal agent onboarding rules installer establishing project memory protocol.",
-          "why": "Ensures AI coding assistants (Antigravity, Cursor, Claude Code) automatically follow live memory protocols.",
-          "how": "File templating with project-specific path injection and global config directory discovery.",
+          "what": "Writes .agents/skills/what-is-it/SKILL.md, .agent/workflows/*.md, .claude/commands/*.md, .cursor/rules/what-is-it.mdc, and idempotently updates AGENTS.md/CLAUDE.md/.cursorrules/.windsurfrules/.clinerules via a marker block.",
+          "why": "So every AI agent/IDE picks up the same project-memory protocol automatically.",
+          "how": "Template string generation with project-specific path injection; marker-delimited block replacement on re-install.",
           "where": "src/cli/skills.ts",
           "when": "Phase 1 MVP"
         },
         {
-          "id": "sub-qa-markdown-mirror",
-          "title": "Human-Readable Markdown Overview Mirror",
-          "description": "Self-regenerating WHAT_IS_IT.md documentation mirror synchronized with binary state.",
+          "id": "sub-skills-two-phase-instructions",
+          "title": "Two-Phase Deep-Analysis Instructions",
           "status": "implemented",
-          "what": "Formatted markdown document with progress bars, feature tables, and user flow links.",
-          "why": "Allows repository visitors on GitHub to inspect live architecture and progress without running the CLI.",
-          "how": "Automated markdown generator invoked on every binary write.",
-          "where": "src/core/markdown.ts",
+          "what": "The generated /what-is-it-init workflow now explicitly sequences Phase 1 (verify real features/flows, generate mockupSvg per screen) before Phase 2 (flag missing/bugs/security), instead of one flat list.",
+          "why": "Previously the instructions didn't distinguish 'what exists' from 'what's missing', so an agent could conflate real features with wishlist gaps.",
+          "how": "Rewrote generateDynamicSkill() section 6 and the what-is-it-init.md template in installSkills().",
+          "where": "src/cli/skills.ts",
+          "when": "Accuracy rewrite"
+        }
+      ]
+    },
+    {
+      "id": "feat-server",
+      "title": "Local Web Server & Live Sync",
+      "description": "Zero-dependency HTTP server serving the SPA, a small REST API, and Server-Sent Events for live updates.",
+      "category": "Networking & Sync",
+      "status": "in_progress",
+      "progress": 60,
+      "order": 5,
+      "subFeatures": [
+        {
+          "id": "sub-server-core",
+          "title": "Static Asset Server, REST API & SSE Broadcast",
+          "status": "implemented",
+          "what": "Serves the built SPA, GET/POST /api/project, POST /api/task/toggle, and a text/event-stream /api/events channel that broadcasts on every fs.watch change to .what-is-it.bin.",
+          "why": "One `npx what-is-it` command needs to serve a live-updating dashboard with no extra infra.",
+          "how": "Node http module, MIME lookup, fs.watch debounce, held SSE response set.",
+          "where": "src/cli/server.ts",
           "when": "Phase 1 MVP"
         },
+        {
+          "id": "sub-server-origin",
+          "title": "Same-Origin Enforcement on /api/*",
+          "status": "implemented",
+          "what": "Every /api/* request is checked against Origin/Referer; anything not matching this server's own localhost:<port> (or lacking the header entirely, e.g. curl/the CLI) gets a 403.",
+          "why": "The server previously sent `Access-Control-Allow-Origin: *` on every response including preflights, so any webpage open in the same browser — visited before or after the dashboard — could read GET /api/project and, worse, POST to it or to /api/task/toggle with zero authentication. That's a classic localhost CSRF/data-exfiltration hole.",
+          "how": "isTrustedOrigin() parses the Origin/Referer URL and compares hostname+port; the wildcard CORS headers were removed entirely rather than scoped, since the SPA is same-origin with its own API.",
+          "where": "src/cli/server.ts",
+          "when": "Security hardening pass"
+        },
+        {
+          "id": "sub-server-validate-write",
+          "title": "Request Payload Schema Validation on Write Endpoints",
+          "status": "implemented",
+          "what": "POST /api/project now runs the body through validateProjectData() and rejects (400) anything that doesn't match before calling saveProjectData().",
+          "why": "Previously any JSON body — valid or not — was compressed and written straight to .what-is-it.bin.",
+          "how": "Reuses core/schema.ts's validateProjectData().",
+          "where": "src/cli/server.ts",
+          "when": "Security hardening pass"
+        },
+        {
+          "id": "sub-server-security-tests",
+          "title": "Automated Test Coverage for Server Security Behavior",
+          "status": "missing",
+          "what": "No test file exercises the HTTP server directly — the origin check, payload validation, and SSE broadcast were only verified manually (curl + a live browser CSRF attempt) during this session, not committed as a regression test.",
+          "why": "Without a test, a future refactor of server.ts could silently reintroduce the wildcard-CORS/unvalidated-write hole this session just closed.",
+          "how": "Spin up startServer() on an ephemeral port in a test, hit it with node's http/fetch using forged Origin headers and malformed bodies, assert 403/400.",
+          "where": "test/server.test.ts (does not exist yet)",
+          "when": "Not yet scheduled"
+        },
+        {
+          "id": "sub-server-sse-backoff",
+          "title": "Client SSE Reconnect with Exponential Backoff",
+          "status": "missing",
+          "what": "EventSource reconnect currently relies on the browser's default retry; no backoff or offline banner.",
+          "why": "Prevents a stale 'Reconnecting' indicator or a thundering-herd reconnect when the CLI server restarts.",
+          "how": "Wrap EventSource with a manual backoff timer in App.tsx.",
+          "where": "src/web/App.tsx",
+          "when": "Not yet scheduled"
+        }
+      ]
+    },
+    {
+      "id": "feat-dashboard",
+      "title": "Web Dashboard: Feature Spec Explorer",
+      "description": "The default tab — feature/sub-feature cards with 4-W drawers, filters, and a per-feature task checklist.",
+      "category": "Frontend & UI",
+      "status": "in_progress",
+      "progress": 67,
+      "order": 6,
+      "subFeatures": [
+        {
+          "id": "sub-dash-cards",
+          "title": "Feature/Sub-Feature Cards with 4-W Detail & Filters",
+          "status": "implemented",
+          "what": "Search + category/status/role filters over expandable sub-feature cards showing What/Why/How/Where/When and a 'Missing & Planned Gaps' callout.",
+          "why": "Gives humans a browsable view of architecture without reading raw JSON.",
+          "how": "React state-filtered rendering over ProjectData.features.",
+          "where": "src/web/components/ProgressDashboard.tsx",
+          "when": "Feature-spec pivot"
+        },
+        {
+          "id": "sub-dash-task-checklist",
+          "title": "Per-Feature Task Checklist Wired to Live Toggle",
+          "status": "implemented",
+          "what": "Each feature now renders its linked legacy Tasks as real checkboxes; checking one calls the App-level handleToggleTask, which was previously fully implemented but never passed down to this component — a completely dead code path.",
+          "why": "There was no way to mark anything done from the dashboard UI at all; only the CLI's `task done` worked (and even that didn't move progress until the linked-sub-feature fix above).",
+          "how": "Added an onToggleTask prop and a checkbox list per feature in ProgressDashboard.tsx; wired it in App.tsx.",
+          "where": "src/web/components/ProgressDashboard.tsx, src/web/App.tsx",
+          "when": "Progress-tracking fix"
+        },
+        {
+          "id": "sub-dash-theme",
+          "title": "Dark/Light Theme Switcher",
+          "status": "missing",
+          "what": "Persistent theme toggle; UI is currently dark-only.",
+          "why": "Accessibility/preference support.",
+          "how": "Tailwind dark-class toggle + CSS variables.",
+          "where": "src/web/components/Navbar.tsx",
+          "when": "Not yet scheduled"
+        }
+      ]
+    },
+    {
+      "id": "feat-wiki",
+      "title": "Web Dashboard: Wiki Docs Viewer",
+      "description": "Sectioned markdown documentation with scroll-spy bookmarks.",
+      "category": "Frontend & UI",
+      "status": "completed",
+      "progress": 100,
+      "order": 7,
+      "subFeatures": [
+        {
+          "id": "sub-wiki-render",
+          "title": "Markdown Rendering with Scroll-Spy Bookmarks",
+          "status": "implemented",
+          "what": "marked-based renderer with heading IDs, a left page index, and a right-rail table of contents that highlights on scroll.",
+          "why": "Lets architecture docs be authored as plain markdown but browsed like a real docs site.",
+          "how": "Custom marked.Renderer + IntersectionObserver-free scroll listener.",
+          "where": "src/web/components/WikiView.tsx",
+          "when": "Phase 1 MVP"
+        },
+        {
+          "id": "sub-wiki-sanitize",
+          "title": "XSS-Sanitized HTML/Link/Image Rendering",
+          "status": "implemented",
+          "what": "The renderer now escapes raw inline/block HTML tokens and restricts link/image URLs to http/https/mailto before the result ever reaches dangerouslySetInnerHTML.",
+          "why": "Wiki content is written by `import`/the HTTP API — untrusted by the time it reaches the browser. marked passes raw HTML through by default, so a malicious wiki page (or a CSRF'd import) could previously execute arbitrary script in the dashboard.",
+          "how": "Overrode renderer.html/link/image with escaping + protocol allowlisting; verified against real <script>/onerror/javascript: payloads in a live browser during this session.",
+          "where": "src/web/components/WikiView.tsx",
+          "when": "Security hardening pass"
+        }
+      ]
+    },
+    {
+      "id": "feat-graph",
+      "title": "Web Dashboard: Visual Flow Graph",
+      "description": "React Flow canvas with actor/frame nodes and an inspector drawer, now supporting agent-generated per-screen mockups.",
+      "category": "Frontend & UI",
+      "status": "in_progress",
+      "progress": 67,
+      "order": 8,
+      "subFeatures": [
+        {
+          "id": "sub-graph-canvas",
+          "title": "React Flow Canvas with Actor/Frame Nodes & Inspector Drawer",
+          "status": "implemented",
+          "what": "Desktop/mobile/modal frame nodes and actor nodes, connected by edges, with role filtering and a click-to-inspect drawer showing UI guidelines/layout blueprint.",
+          "why": "Visualizes discovered/verified user flows instead of a flat feature list.",
+          "how": "@xyflow/react custom node types + Drawer.tsx.",
+          "where": "src/web/components/UserFlowGraph.tsx, src/web/components/Drawer.tsx",
+          "when": "Phase 1 MVP"
+        },
+        {
+          "id": "sub-graph-mockupsvg",
+          "title": "Agent-Generated Per-Screen SVG Mockups",
+          "status": "implemented",
+          "what": "FlowNodeData.mockupSvg lets an agent supply a real, screen-specific inline SVG; frame node components render it (sanitized: scripts/event handlers/unsafe URLs stripped) instead of the generic wireframe template, which remains the fallback when mockupSvg is absent.",
+          "why": "Previously every screen rendered the exact same fixed browser-chrome/phone-bezel template regardless of what the screen actually looked like — there was no way for an agent's deep analysis to produce a real visual.",
+          "how": "Added mockupSvg to the schema, a DOMParser-based sanitizeSvgMarkup() (src/web/sanitizeSvg.ts), and a render branch in each of DesktopFrameNode/MobileFrameNode/ModalFrameNode.",
+          "where": "src/web/sanitizeSvg.ts, src/web/components/nodes/*.tsx, src/core/schema.ts",
+          "when": "This session"
+        },
+        {
+          "id": "sub-graph-gestures",
+          "title": "Mobile Touch Gestures & Minimap Zoom-to-Fit Toggle",
+          "status": "missing",
+          "what": "Pinch-zoom/swipe support and a minimap zoom-to-fit control for the canvas.",
+          "why": "Usability on touch devices.",
+          "how": "React Flow touch gesture config.",
+          "where": "src/web/components/UserFlowGraph.tsx",
+          "when": "Not yet scheduled"
+        }
+      ]
+    },
+    {
+      "id": "feat-static",
+      "title": "Static Export & GitHub Pages Mode",
+      "description": "The same SPA bundle can run with no server at all, reading a pre-exported data.json.",
+      "category": "Frontend & UI",
+      "status": "completed",
+      "progress": 100,
+      "order": 9,
+      "subFeatures": [
+        {
+          "id": "sub-static-export",
+          "title": "Static data.json Export with LocalStorage Task Overrides",
+          "status": "implemented",
+          "what": "scripts/export-static.js snapshots the current binary state to docs/data.json; the SPA falls back to fetching it when /api/project 404s, and persists task toggles to localStorage instead of a server.",
+          "why": "Powers the GitHub Pages live demo and lets any project's exported docs/ folder work with zero backend.",
+          "how": "Static export script + fetch-fallback chain + applyLocalOverrides() in App.tsx.",
+          "where": "scripts/export-static.js, src/web/App.tsx",
+          "when": "Phase 1 MVP"
+        },
+        {
+          "id": "sub-static-nav-fix",
+          "title": "Persistent Docs-Mode Navigation",
+          "status": "implemented",
+          "what": "Switching tabs (Wiki/Graph/Specs) in static/GitHub-Pages mode no longer bounces back to the marketing landing page.",
+          "why": "isLandingMode was gated on `window.location.hash.startsWith('#docs')`, but every tab switch overwrote the hash to a plain tab name (`#wiki`, `#flows`) — so clicking any nav tab after the first immediately re-triggered the landing page. Found and reproduced live with real clicks during this session's testing.",
+          "how": "Replaced the hash-derived check with a persistent `hasEnteredDocs` React state flag that, once set, survives subsequent tab-hash changes.",
+          "where": "src/web/App.tsx",
+          "when": "This session"
+        }
+      ]
+    },
+    {
+      "id": "feat-qa",
+      "title": "Verification & CI",
+      "description": "Automated tests and GitHub Actions workflows.",
+      "category": "Verification & QA",
+      "status": "in_progress",
+      "progress": 67,
+      "order": 10,
+      "subFeatures": [
         {
           "id": "sub-qa-unit-tests",
-          "title": "Comprehensive Automated Unit & Integration Tests",
-          "description": "Vitest test suite covering binary persistence, schema validation, scanner synthesis, and CLI actions.",
+          "title": "Unit & Integration Test Suite",
           "status": "implemented",
-          "what": "Automated test suite validating storage decompression, integrity checks, and progress calculation.",
-          "why": "Guarantees zero regressions across releases and package upgrades.",
-          "how": "Vitest runner with temporary test directory fixtures and assertion helpers.",
-          "where": "test/core.test.ts",
+          "what": "11 tests across storage/scanner/caveman-formatter/skills-installer/binary-security concurrency.",
+          "why": "Regression safety for the core persistence and synthesis logic.",
+          "how": "Node's built-in test runner (node:test) via tsx.",
+          "where": "test/core.test.ts, test/security.test.ts, test/skills.test.ts",
           "when": "Phase 1 MVP"
         },
         {
-          "id": "sub-qa-e2e-headless",
-          "title": "End-to-End Headless Visual Regression Tests",
-          "description": "Playwright headless browser verification of React Flow graph rendering and drawer interactions.",
+          "id": "sub-qa-ci",
+          "title": "GitHub Actions CI (Deploy & Publish)",
+          "status": "implemented",
+          "what": "deploy.yml and publish.yml workflows exist for GitHub Pages deploy and npm publish.",
+          "why": "Automates release and demo-site updates.",
+          "how": "Standard GitHub Actions workflows.",
+          "where": ".github/workflows/deploy.yml, .github/workflows/publish.yml",
+          "when": "Phase 1 MVP"
+        },
+        {
+          "id": "sub-qa-visual-regression",
+          "title": "Headless Visual Regression Tests for the Flow Canvas",
           "status": "missing",
-          "what": "Automated visual screenshot comparison and interaction tests for the web viewer.",
-          "why": "Prevents subtle rendering glitches in SVG flow frames and custom node layouts.",
-          "how": "Playwright test runner with Percy or pixelmatch snapshot assertions.",
-          "where": "test/e2e/canvas.spec.ts",
-          "when": "Milestone 3"
+          "what": "No automated screenshot/interaction tests for the React Flow canvas, drawer, or the new mockupSvg render path.",
+          "why": "Prevents silent rendering regressions in the SVG frame/mockup logic across dependency upgrades.",
+          "how": "Playwright + pixel-diff snapshots.",
+          "where": "test/e2e/canvas.spec.ts (does not exist yet)",
+          "when": "Not yet scheduled"
         }
-      ],
-      "roleActions": [
-        {
-          "id": "ra-qa-1",
-          "actorRole": "Developer",
-          "action": "Install project memory rules for Antigravity, Cursor, and Claude Code",
-          "status": "implemented",
-          "targetScreenOrEndpoint": "npx @shakthizen/what-is-it install-skill"
-        },
-        {
-          "id": "ra-qa-2",
-          "actorRole": "Developer",
-          "action": "Run automated unit and integration tests",
-          "status": "implemented",
-          "targetScreenOrEndpoint": "pnpm test"
-        },
-        {
-          "id": "ra-qa-3",
-          "actorRole": "Developer",
-          "action": "Run headless visual regression tests on the web canvas",
-          "status": "missing",
-          "targetScreenOrEndpoint": "test/e2e/canvas.spec.ts"
-        }
-      ],
-      "userStories": [
-        {
-          "id": "us-qa-1",
-          "actorRole": "Developer",
-          "story": "As a Developer, I want multi-agent rules installed automatically so that new AI agents immediately know the project memory protocol.",
-          "status": "implemented",
-          "acceptanceCriteria": [
-            "Installs to AGENTS.md, CLAUDE.md, and .cursorrules",
-            "Configures global or local skills",
-            "Documents session start orientation"
-          ]
-        },
-        {
-          "id": "us-qa-2",
-          "actorRole": "Developer",
-          "story": "As a Developer, I want a synced WHAT_IS_IT.md mirror so that GitHub viewers can inspect live progress at a glance.",
-          "status": "implemented",
-          "acceptanceCriteria": [
-            "Updated on every binary write",
-            "Shows ASCII progress bar",
-            "Lists features and active focus"
-          ]
-        }
-      ],
-      "missingDetails": {
-        "whatsMissing": [
-          "Headless visual regression test suite for React Flow canvas and drawer",
-          "Continuous integration GitHub Actions workflow for automatic publish"
-        ],
-        "why": "Ensure web canvas rendering and UI wireframes never degrade across dependency updates.",
-        "how": "Configure Playwright test runner and GitHub Actions CI workflow.",
-        "where": [
-          "test/e2e/canvas.spec.ts",
-          ".github/workflows/ci.yml"
-        ],
-        "when": "Milestone 3"
-      }
-    }
-  ],
-  "tasks": [
-    {
-      "id": "task-1",
-      "featureId": "feat-core-engine",
-      "title": "Compressed Binary State & Storage Engine",
-      "status": "done",
-      "priority": "medium",
-      "actorRole": "Developer",
-      "why": "Eliminates file bloat and enables instant zero-latency loads for multi-agent workflows.",
-      "how": "Node.js zlib deflateSync (level 9) with atomic temporary file renaming.",
-      "where": "src/core/storage.ts",
-      "when": "Phase 1 MVP",
-      "createdAt": "2026-09-05T21:15:58.973Z",
-      "completedAt": "2026-09-05T21:15:58.973Z"
-    },
-    {
-      "id": "task-2",
-      "featureId": "feat-core-engine",
-      "title": "Type-Safe Feature Spec & Contract Validation",
-      "status": "done",
-      "priority": "medium",
-      "actorRole": "Developer",
-      "why": "Guarantees structural validity across CLI, web dashboard, and AI agent interactions.",
-      "how": "Exported JSON schema builder and TypeScript strict type definitions.",
-      "where": "src/core/schema.ts",
-      "when": "Phase 1 MVP",
-      "createdAt": "2026-09-05T21:15:58.973Z",
-      "completedAt": "2026-09-05T21:15:58.973Z"
-    },
-    {
-      "id": "task-3",
-      "featureId": "feat-core-engine",
-      "title": "Atomic Multi-Process File Locking",
-      "status": "todo",
-      "priority": "high",
-      "actorRole": "Developer",
-      "why": "Multiple AI agents or background tasks writing simultaneously can race and corrupt state.",
-      "how": "Implement file descriptor locking or lockfile mechanism before atomic rename.",
-      "where": "src/core/storage.ts, src/core/lock.ts",
-      "when": "Milestone 2 (Reliability)",
-      "createdAt": "2026-09-05T21:15:58.973Z"
-    },
-    {
-      "id": "task-4",
-      "featureId": "feat-cli-tools",
-      "title": "CLI Command Suite & Terminal Dispatcher",
-      "status": "done",
-      "priority": "medium",
-      "actorRole": "Developer",
-      "why": "Enables seamless control by both humans in terminals and AI agents via shell execution.",
-      "how": "Commander.js option definitions, picocolors output formatting, and process exit codes.",
-      "where": "src/cli/index.ts",
-      "when": "Phase 1 MVP",
-      "createdAt": "2026-09-05T21:15:58.973Z",
-      "completedAt": "2026-09-05T21:15:58.973Z"
-    },
-    {
-      "id": "task-5",
-      "featureId": "feat-cli-tools",
-      "title": "Caveman-Style Token-Efficient Status Formatter",
-      "status": "done",
-      "priority": "medium",
-      "actorRole": "Developer",
-      "why": "Minimizes LLM prompt token consumption while communicating maximum actionable context.",
-      "how": "Custom string templater with color-coded ANSI glyphs and priority filters.",
-      "where": "src/cli/caveman.ts",
-      "when": "Phase 1 MVP",
-      "createdAt": "2026-09-05T21:15:58.973Z",
-      "completedAt": "2026-09-05T21:15:58.973Z"
-    },
-    {
-      "id": "task-6",
-      "featureId": "feat-cli-tools",
-      "title": "Automatic Scratch State Cleaner on Import",
-      "status": "done",
-      "priority": "medium",
-      "actorRole": "Developer",
-      "why": "Prevents workspace clutter and prevents agents from reading stale temporary files.",
-      "how": "File unlink hook with parent directory emptiness check in the CLI import action.",
-      "where": "src/cli/index.ts",
-      "when": "Current Sprint",
-      "createdAt": "2026-09-05T21:15:58.973Z",
-      "completedAt": "2026-09-05T21:15:58.973Z"
-    },
-    {
-      "id": "task-7",
-      "featureId": "feat-cli-tools",
-      "title": "Interactive Feature & Milestone CLI Prompt Wizard",
-      "status": "todo",
-      "priority": "high",
-      "actorRole": "Developer",
-      "why": "Accelerates feature creation for developers who prefer interactive terminal guidance.",
-      "how": "Integrate @clack/prompts or enquirer for interactive fuzzy selection and validation.",
-      "where": "src/cli/wizard.ts, src/cli/index.ts",
-      "when": "Milestone 3",
-      "createdAt": "2026-09-05T21:15:58.973Z"
-    },
-    {
-      "id": "task-8",
-      "featureId": "feat-web-dashboard",
-      "title": "Feature Spec & Architecture Explorer",
-      "status": "done",
-      "priority": "medium",
-      "actorRole": "Developer",
-      "why": "Gives humans and agents total clarity on what capabilities exist, who uses them, and what is missing.",
-      "how": "React components with Tailwind CSS cards, filter bars, status pills, and expandable 4 W drawers.",
-      "where": "src/web/components/ProgressDashboard.tsx",
-      "when": "Current Sprint",
-      "createdAt": "2026-09-05T21:15:58.973Z",
-      "completedAt": "2026-09-05T21:15:58.973Z"
-    },
-    {
-      "id": "task-9",
-      "featureId": "feat-web-dashboard",
-      "title": "Interactive SVG Node Graph & Wireframe Canvas",
-      "status": "done",
-      "priority": "medium",
-      "actorRole": "Developer",
-      "why": "Allows visual verification of user journeys, design guidelines, and screen layouts.",
-      "how": "@xyflow/react custom node implementations (DesktopFrameNode, MobileFrameNode, ModalFrameNode, ActorNode).",
-      "where": "src/web/components/UserFlowGraph.tsx",
-      "when": "Phase 1 MVP",
-      "createdAt": "2026-09-05T21:15:58.973Z",
-      "completedAt": "2026-09-05T21:15:58.973Z"
-    },
-    {
-      "id": "task-10",
-      "featureId": "feat-web-dashboard",
-      "title": "Design System & Component Specs Drawer",
-      "status": "done",
-      "priority": "medium",
-      "actorRole": "Developer",
-      "why": "Provides full UI design system specs for any selected screen node.",
-      "how": "Collapsible slide-over drawer triggered by node selection with tabbed specs and JSON inspector.",
-      "where": "src/web/components/Drawer.tsx",
-      "when": "Phase 1 MVP",
-      "createdAt": "2026-09-05T21:15:58.973Z",
-      "completedAt": "2026-09-05T21:15:58.973Z"
-    },
-    {
-      "id": "task-11",
-      "featureId": "feat-web-dashboard",
-      "title": "Dark/Light Theme Switcher & Mobile Gestures",
-      "status": "todo",
-      "priority": "high",
-      "actorRole": "Developer",
-      "why": "Enhances usability on mobile devices and supports user accessibility preferences.",
-      "how": "Tailwind dark class toggle with CSS variables and touch event handlers on the canvas viewport.",
-      "where": "src/web/components/ThemeToggle.tsx, src/web/components/UserFlowGraph.tsx",
-      "when": "Milestone 2",
-      "createdAt": "2026-09-05T21:15:58.973Z"
-    },
-    {
-      "id": "task-12",
-      "featureId": "feat-api-sync",
-      "title": "Embedded Micro-Server & Static Asset Server",
-      "status": "done",
-      "priority": "medium",
-      "actorRole": "Developer",
-      "why": "Enables instant web dashboard launching with a single npx command without complex server infrastructure.",
-      "how": "Node.js http module with MIME type resolution and gzip stream support.",
-      "where": "src/cli/server.ts",
-      "when": "Phase 1 MVP",
-      "createdAt": "2026-09-05T21:15:58.973Z",
-      "completedAt": "2026-09-05T21:15:58.973Z"
-    },
-    {
-      "id": "task-13",
-      "featureId": "feat-api-sync",
-      "title": "Live Server-Sent Events (SSE) Broadcast Pipeline",
-      "status": "done",
-      "priority": "medium",
-      "actorRole": "Developer",
-      "why": "Eliminates manual browser refresh and gives developers immediate feedback as AI agents work.",
-      "how": "text/event-stream response stream with keep-alive heartbeat and reconnection support.",
-      "where": "src/cli/server.ts",
-      "when": "Phase 1 MVP",
-      "createdAt": "2026-09-05T21:15:58.973Z",
-      "completedAt": "2026-09-05T21:15:58.973Z"
-    },
-    {
-      "id": "task-14",
-      "featureId": "feat-api-sync",
-      "title": "Resilient SSE Reconnection with Exponential Backoff",
-      "status": "todo",
-      "priority": "high",
-      "actorRole": "Developer",
-      "why": "Prevents broken UI state when server restarts or terminal process pauses.",
-      "how": "Wrap EventSource with reconnection backoff timer and toast notifications.",
-      "where": "src/web/App.tsx, src/web/components/Navbar.tsx",
-      "when": "Milestone 2",
-      "createdAt": "2026-09-05T21:15:58.973Z"
-    },
-    {
-      "id": "task-15",
-      "featureId": "feat-qa-docs",
-      "title": "Multi-Agent Rules & Skill Generator",
-      "status": "done",
-      "priority": "medium",
-      "actorRole": "Developer",
-      "why": "Ensures AI coding assistants (Antigravity, Cursor, Claude Code) automatically follow live memory protocols.",
-      "how": "File templating with project-specific path injection and global config directory discovery.",
-      "where": "src/cli/skills.ts",
-      "when": "Phase 1 MVP",
-      "createdAt": "2026-09-05T21:15:58.973Z",
-      "completedAt": "2026-09-05T21:15:58.973Z"
-    },
-    {
-      "id": "task-16",
-      "featureId": "feat-qa-docs",
-      "title": "Human-Readable Markdown Overview Mirror",
-      "status": "done",
-      "priority": "medium",
-      "actorRole": "Developer",
-      "why": "Allows repository visitors on GitHub to inspect live architecture and progress without running the CLI.",
-      "how": "Automated markdown generator invoked on every binary write.",
-      "where": "src/core/markdown.ts",
-      "when": "Phase 1 MVP",
-      "createdAt": "2026-09-05T21:15:58.973Z",
-      "completedAt": "2026-09-05T21:15:58.973Z"
-    },
-    {
-      "id": "task-17",
-      "featureId": "feat-qa-docs",
-      "title": "Comprehensive Automated Unit & Integration Tests",
-      "status": "done",
-      "priority": "medium",
-      "actorRole": "Developer",
-      "why": "Guarantees zero regressions across releases and package upgrades.",
-      "how": "Vitest runner with temporary test directory fixtures and assertion helpers.",
-      "where": "test/core.test.ts",
-      "when": "Phase 1 MVP",
-      "createdAt": "2026-09-05T21:15:58.973Z",
-      "completedAt": "2026-09-05T21:15:58.973Z"
-    },
-    {
-      "id": "task-18",
-      "featureId": "feat-qa-docs",
-      "title": "End-to-End Headless Visual Regression Tests",
-      "status": "todo",
-      "priority": "high",
-      "actorRole": "Developer",
-      "why": "Prevents subtle rendering glitches in SVG flow frames and custom node layouts.",
-      "how": "Playwright test runner with Percy or pixelmatch snapshot assertions.",
-      "where": "test/e2e/canvas.spec.ts",
-      "when": "Milestone 3",
-      "createdAt": "2026-09-05T21:15:58.973Z"
+      ]
     }
   ],
   "wiki": [
@@ -799,511 +435,182 @@
       "title": "Architecture & System Overview",
       "category": "Architecture",
       "order": 1,
-      "lastModified": "2026-09-05T21:15:58.973Z",
+      "lastModified": "2026-09-06T00:00:00.000Z",
       "bookmarks": [
         {
-          "id": "high-level-topology",
-          "title": "High-Level Topology",
+          "id": "high-level-layers",
+          "title": "High-Level Layers",
           "level": 2
         },
         {
-          "id": "feature-spec-model",
-          "title": "Feature Spec & Sub-Feature Architecture",
+          "id": "data-flow",
+          "title": "Data Flow",
           "level": 2
         },
         {
-          "id": "tech-stack-decisions",
-          "title": "Tech Stack Decisions",
-          "level": 2
-        },
-        {
-          "id": "directory-structure",
-          "title": "Directory Structure",
+          "id": "tech-stack",
+          "title": "Tech Stack",
           "level": 2
         }
       ],
-      "content": "## High-Level Topology\n\n@shakthizen/what-is-it is a cli project built with React, Vite, Tailwind CSS, CLI. It contains 41 tracked files across 0 routes, 11 components, 0 services/APIs, and 10 core/CLI modules.\n\n```text\n+-------------------------------------------------------------+\n|                      Client / UI Layer                      |\n|   Routes: 0 discovered | Components: 11 discovered  |\n+------------------------------+------------------------------+\n                               |\n                               v\n+-------------------------------------------------------------+\n|                   Services & Data Layer                     |\n|   API Endpoints / Services: 0 discovered             |\n+-------------------------------------------------------------+\n                               |\n                               v\n+-------------------------------------------------------------+\n|                   Core Engine & CLI Layer                   |\n|   Core / CLI Modules: 10 discovered               |\n+-------------------------------------------------------------+\n```\n\n## Feature Spec & Sub-Feature Architecture\n\nThis project tracks capabilities through a structured **Feature Spec Model**:\n- **Main Features**: High-level modules and domains.\n- **Sub-Features**: Granular capabilities with implementation status (`implemented`, `in_progress`, `missing`) and full 4 W's rationale (`what`, `why`, `how`, `where`, `when`).\n- **Role-Based Actions**: Operational capabilities mapped per actor role (`Developer`, `User`, `Admin`, `Guest`).\n- **User Stories**: Acceptance-criteria-driven requirements ensuring user empathy.\n- **What's Missing & Planned Gaps**: Explicit callouts of architectural debt, planned reliability, and future milestones.\n\n## Tech Stack Decisions\n\n- **Project Category**: `CLI`\n- **Primary Frameworks**: `React`, `Vite`, `Tailwind CSS`, `CLI`\n- **Live Documentation**: `@shakthizen/what-is-it` compressed binary state & multi-agent skill.\n\n## Directory Structure\n\n```text\n📁 bin\n📁 scripts\n📁 src\n📁 src/cli\n📁 src/core\n📁 src/web\n📁 src/web/components\n📁 src/web/components/nodes\n📁 test\n```\n"
+      "content": "## High-Level Layers\n\n```text\n+----------------------------------------------------------------+\n|  CLI (src/cli/index.ts)                                        |\n|  init / status / task / feature / export / import / schema     |\n+---------------------------+--------------------------------------+\n                            |\n                            v\n+----------------------------------------------------------------+\n|  Core Engine (src/core/*)                                       |\n|  scanner.ts (baseline synthesis) -> storage.ts (compress/validate/write .what-is-it.bin) |\n+---------------------------+--------------------------------------+\n                            |\n                            v\n+----------------------------------------------------------------+\n|  Local Server (src/cli/server.ts)                                |\n|  Static SPA + REST API (/api/project, /api/task/toggle) + SSE   |\n+---------------------------+--------------------------------------+\n                            |\n                            v\n+----------------------------------------------------------------+\n|  Web Dashboard (src/web/*)                                       |\n|  Feature Spec Explorer | Wiki Docs | Visual Flow Graph            |\n+----------------------------------------------------------------+\n```\n\n## Data Flow\n\n1. `init` scans the target repo by file path only and writes an honest baseline to `.what-is-it.bin`.\n2. An AI agent runs `/what-is-it-init`, actually reads the code, and `import`s a verified replacement (real rationale, real flows, real per-screen `mockupSvg`).\n3. `npx what-is-it` starts the local server, which serves the SPA and streams SSE updates whenever `.what-is-it.bin` changes (e.g. from `task done`).\n4. For GitHub Pages / no-server use, `scripts/export-static.js` snapshots the same state to `data.json`, and the SPA falls back to fetching that file.\n\n## Tech Stack\n\n- **CLI**: Commander.js, picocolors, Node's zlib for binary compression.\n- **Web**: React 19, Vite, Tailwind CSS 4, `@xyflow/react` for the flow canvas, `marked` for wiki markdown.\n- **Build**: `tsup` for the CLI bundle, `vite build` for the SPA, both checked into `dist/`/`docs/` for npm packaging and GitHub Pages.\n"
     },
     {
-      "id": "ui-design-guidelines",
-      "title": "UI Guidelines & Design System",
-      "category": "Design & UX",
+      "id": "two-phase-init-model",
+      "title": "The Two-Phase Init Model",
+      "category": "Architecture",
       "order": 2,
-      "lastModified": "2026-09-05T21:15:58.973Z",
+      "lastModified": "2026-09-06T00:00:00.000Z",
       "bookmarks": [
         {
-          "id": "design-principles",
-          "title": "Design Principles",
+          "id": "why-two-phases",
+          "title": "Why Two Phases",
           "level": 2
         },
         {
-          "id": "color-palette-tokens",
-          "title": "Color Palette Tokens",
+          "id": "phase-1",
+          "title": "Phase 1 — init (baseline)",
           "level": 2
         },
         {
-          "id": "typography-scale",
-          "title": "Typography Scale",
-          "level": 2
-        },
-        {
-          "id": "spacing-and-layout-grid",
-          "title": "Spacing & Layout Grid",
-          "level": 2
-        },
-        {
-          "id": "component-standards",
-          "title": "Component Standards",
-          "level": 2
-        },
-        {
-          "id": "accessibility-wcag",
-          "title": "Accessibility & WCAG 2.1 AA",
-          "level": 2
-        },
-        {
-          "id": "state-handling-patterns",
-          "title": "State Handling Patterns",
+          "id": "phase-2",
+          "title": "Phase 2 — /what-is-it-init (deep pass)",
           "level": 2
         }
       ],
-      "content": "## Design Principles\n\n1. **Visual Clarity First**: Use crisp vector wireframes, distinct typography scales, and generous whitespace.\n2. **Immediate Feedback**: Micro-interactions, animated state transitions, and clear loading states.\n3. **Actor-Role Empathy**: Customize interfaces specifically for the active user role.\n4. **Resilient State Architecture**: Every interactive surface must account for empty, loading, error, and hydrated states.\n\n## Color Palette Tokens\n\n| Role / Intent | Hex Token | Visual Representation |\n| :--- | :--- | :--- |\n| **Primary Brand** | `#6366f1` (Indigo 500) | 🟣 Primary buttons, active tabs, focus rings |\n| **Success / Done** | `#10b981` (Emerald 500) | 🟢 Implemented features, positive status indicators |\n| **In Progress** | `#f59e0b` (Amber 500) | 🟡 Active execution, pending review badges |\n| **Danger / Missing** | `#ef4444` (Rose 500) | 🔴 Missing capabilities, architectural gaps |\n| **Dark Canvas** | `#090d16` (Slate 950) | ⬛ Deep obsidian base background |\n| **Surface Card** | `#131b2e` (Slate 900) | 🪟 Frosted glass card containers |\n| **Card Border** | `#1e293b` (Slate 800) | 📐 Subtle structural dividers |\n| **Text Primary** | `#f8fafc` (Slate 50) | ⚪ Headings and primary titles |\n| **Text Muted** | `#94a3b8` (Slate 400) | 🔘 Captions, secondary labels, timestamps |\n\n## Typography Scale\n\n- **Display**: `font-bold 32px / line-height 40px` — Hero headlines and landing value props.\n- **H1 Heading**: `font-bold 24px / line-height 32px` — Page titles and section headers.\n- **H2 Heading**: `font-semibold 18px / line-height 26px` — Card titles and group headers.\n- **H3 Heading**: `font-medium 14px / line-height 20px` — Subheaders and table column titles.\n- **Body Text**: `font-normal 14px / line-height 22px` — Primary content and descriptions.\n- **Caption / Meta**: `font-normal 12px / line-height 16px` — Badges, secondary metadata, timestamps.\n- **Monospace Code**: `font-mono 12px` — File paths, IDs, tokens, shell commands.\n\n## Spacing & Layout Grid\n\n- **Base Unit**: 4px / 8px scale (`0.5rem = 8px`, `1rem = 16px`, `1.5rem = 24px`, `2rem = 32px`).\n- **Container Padding**: Desktop `p-6` (24px), Mobile `p-4` (16px).\n- **Element Spacing**: Cards `gap-4` (16px), dense lists `gap-2` (8px).\n- **Max Width**: Application canvas constrained to `max-w-7xl` with auto centering.\n\n## Accessibility & WCAG 2.1 AA\n\n- **Color Contrast**: All text must achieve >= 4.5:1 contrast against its background.\n- **Keyboard Navigation**: All interactive elements (buttons, links, inputs) must have visible focus rings (`focus-visible:ring-2`).\n- **ARIA Semantics**: Use proper semantic HTML, `aria-label` for icon buttons, and `role=\"dialog\"` with focus trapping on modals.\n\n## State Handling Patterns\n\n- **Empty State**: Friendly illustration or icon, explanatory heading, and prominent action button to create first item.\n- **Loading State**: Skeleton placeholders preserving layout dimensions (avoid jumping / layout shift).\n- **Error State**: Inline dismissible alert banner with human-readable cause and \"Retry\" button.\n"
+      "content": "## Why Two Phases\n\nEarlier versions of `init` tried to do deep analysis without reading any code, and ended up hardcoding a feature narrative that described what-is-it's *own* architecture on every project it ran against. The fix was to split responsibilities cleanly: `init` only ever claims what a file-path scan can actually verify; real understanding is deferred to an agent that can read source.\n\n## Phase 1 — `init` (baseline)\n\n- Detects frameworks/project type from manifests.\n- Buckets files into routes/components/services/cli/core/tests/docs by path pattern.\n- Emits one Feature per non-empty bucket, one SubFeature per file, with neutral 'discovered, not yet verified' rationale.\n- Never invents `missingDetails` or guesses actor roles/personas.\n\n## Phase 2 — `/what-is-it-init` (deep pass)\n\nRun as a slash command in an AI agent's chat. Instructed (see `.claude/commands/what-is-it-init.md`) to, in strict order:\n1. Actually read the code and replace the baseline's generic sub-features with real Why/How rationale and real user flows — including a real inline SVG `mockupSvg` per screen instead of the generic wireframe template.\n2. **Only then** flag genuinely missing features, bugs, and security issues as separate `status: \"missing\"` entries, kept out of the 'what exists' inventory built in step 1.\n3. `import` the result, replacing the baseline.\n"
     },
     {
-      "id": "actor-roles-user-journeys",
-      "title": "Actor Roles & User Journeys",
-      "category": "Product & UX",
+      "id": "security-model",
+      "title": "Security Model",
+      "category": "Security",
       "order": 3,
-      "lastModified": "2026-09-05T21:15:58.973Z",
+      "lastModified": "2026-09-06T00:00:00.000Z",
       "bookmarks": [
         {
-          "id": "identified-actors",
-          "title": "Identified Actors",
+          "id": "local-server-hardening",
+          "title": "Local Server Hardening",
           "level": 2
         },
         {
-          "id": "primary-user-flow",
-          "title": "Primary User Flow",
+          "id": "content-sanitization",
+          "title": "Content Sanitization",
+          "level": 2
+        },
+        {
+          "id": "known-remaining-gaps",
+          "title": "Known Remaining Gaps",
           "level": 2
         }
       ],
-      "content": "## Identified Actors\n\n- 👤 **Guest / Visitor**: Unauthenticated user exploring landing pages, feature specs, and architectural overviews.\n- 🔑 **Authenticated User**: Signed-in member viewing live progress dashboards, interactive graphs, and documentation.\n- 🛠️ **Developer / AI Agent**: Pair programmer running CLI status, marking sub-features done, and maintaining live memory.\n- 🛡️ **Administrator**: Project lead inspecting missing gaps, planning roadmap milestones, and auditing reliability.\n\n## Primary User Flow\n\n```text\n[Guest]     --> (Visits App)        --> [Landing / Quickstart]\n                                              |\n                                              v (Selects Spec Explorer)\n[User]      --> [Feature Spec Explorer] <---> [Interactive Visual Graph]\n                     ^                                |\n                     |                                v\n[Developer] --> [CLI / Live Memory]             [Design Drawer]\n```\n"
+      "content": "## Local Server Hardening\n\n`src/cli/server.ts` used to send `Access-Control-Allow-Origin: *` on every response and accepted unvalidated JSON on `POST /api/project` — a classic localhost CSRF hole: any webpage open in the same browser could read or overwrite the dashboard's state. Fixed by:\n- Rejecting any `/api/*` request whose Origin/Referer doesn't match this server's own `localhost:<port>` (no CORS headers are sent at all now, so the browser itself also blocks cross-origin reads).\n- Running every write body through `validateProjectData()` before it touches disk.\n\nBoth were verified live during the audit: a genuine cross-origin `fetch()` from a different port was blocked by the browser before it reached the server, and a forged-`Origin` `curl` request was rejected server-side with 403.\n\n## Content Sanitization\n\nTwo render paths take untrusted, agent/import-supplied content straight into the DOM:\n- **Wiki markdown** (`WikiView.tsx`): raw HTML tokens are now escaped and link/image URLs restricted to http/https/mailto before `marked`'s output reaches `dangerouslySetInnerHTML`.\n- **Agent-generated SVG mockups** (`FlowNodeData.mockupSvg`): `sanitizeSvgMarkup()` strips `<script>`, event-handler attributes, and unsafe URLs via `DOMParser`/`XMLSerializer` before the frame node components render it.\n\nBoth were verified against real `<script>`/`onerror`/`javascript:` payloads in a live browser.\n\n## Known Remaining Gaps\n\n- No automated regression test exercises the server's origin check or payload validation directly (`sub-server-security-tests`) — only manually verified this session.\n- No multi-process file lock on `.what-is-it.bin` writes (`sub-storage-lock`) — concurrent agent writes can still race.\n"
     }
   ],
   "flows": [
     {
-      "id": "main-user-journey",
-      "title": "Primary User & Developer Journey",
-      "actorRole": "Guest, User & Developer",
-      "description": "End-to-end journey from landing visit, feature spec inspection, visual node graph navigation, to screen blueprint drawer.",
+      "id": "dashboard-journey",
+      "title": "Developer & Dashboard Viewer Journey",
+      "actorRole": "Developer / AI Agent, Dashboard Viewer",
+      "description": "How a developer/agent driving the CLI and a human viewing the local dashboard actually move through the three tabs.",
       "nodes": [
         {
-          "id": "actor-guest",
+          "id": "actor-dev",
           "type": "actorNode",
           "position": {
             "x": 40,
             "y": 100
           },
           "data": {
-            "title": "Guest / Visitor",
-            "subtitle": "Unauthenticated User",
-            "actorRole": "Guest"
-          }
-        },
-        {
-          "id": "actor-user",
-          "type": "actorNode",
-          "position": {
-            "x": 40,
-            "y": 380
-          },
-          "data": {
-            "title": "Authenticated User",
-            "subtitle": "Member / Stakeholder",
-            "actorRole": "User"
-          }
-        },
-        {
-          "id": "actor-dev",
-          "type": "actorNode",
-          "position": {
-            "x": 40,
-            "y": 660
-          },
-          "data": {
             "title": "Developer / AI Agent",
-            "subtitle": "Antigravity / Cursor / CLI",
+            "subtitle": "Drives init, status, task done via the CLI",
             "actorRole": "Developer"
           }
         },
         {
-          "id": "screen-landing",
-          "type": "desktopFrame",
+          "id": "actor-viewer",
+          "type": "actorNode",
           "position": {
-            "x": 380,
-            "y": 60
+            "x": 40,
+            "y": 340
           },
           "data": {
-            "title": "Landing & Project Overview",
-            "subtitle": "src/web/components/LandingPage.tsx",
-            "actorRole": "Guest",
-            "frameType": "desktop",
-            "uiGuidelines": {
-              "layout": "Navbar + Hero Section + Feature Highlights Grid",
-              "colors": [
-                "#6366f1",
-                "#090d16",
-                "#ffffff",
-                "#10b981"
-              ],
-              "typography": "Display Bold 32px, Body Regular 14px",
-              "responsive": "Fluid container with max-w-6xl auto centering",
-              "spacing": "p-6 desktop, p-4 mobile, gap-6 grid",
-              "components": [
-                "StickyHeader",
-                "HeroBanner",
-                "FeatureCardGrid",
-                "CTAButtons"
-              ],
-              "accessibility": [
-                "WCAG 2.1 AA compliant",
-                "Visible focus rings",
-                "ARIA labels on action buttons"
-              ],
-              "states": {
-                "loading": "Skeleton hero and card placeholders",
-                "empty": "Minimal landing preview with quickstart CTA",
-                "error": "Inline retry banner if telemetry fails"
-              },
-              "interactionRules": [
-                "Smooth scroll navigation",
-                "Hover elevation on cards",
-                "Mobile drawer menu toggle"
-              ],
-              "specs": [
-                "Sticky navigation header",
-                "CTA Button: Open Spec Explorer",
-                "Zero cumulative layout shift"
-              ]
-            },
-            "visualLayout": {
-              "headerTitle": "@shakthizen/what-is-it",
-              "navItems": [
-                "Features",
-                "Wiki Docs",
-                "Visual Graph"
-              ],
-              "contentBlocks": [
-                {
-                  "type": "hero",
-                  "label": "Hero: @shakthizen/what-is-it Architecture",
-                  "height": 65,
-                  "details": "@shakthizen/what-is-it is a cli project built with React, Vite, Tailwind CSS, CLI. It contains 41 tracked files across 0 routes, 11 components, 0 services/APIs, and 10 core/CLI modules."
-                },
-                {
-                  "type": "card",
-                  "label": "Domain Features Highlights",
-                  "height": 50,
-                  "details": "5 features mapped"
-                }
-              ]
-            },
-            "actions": [
-              {
-                "label": "Explore Specs",
-                "targetNodeId": "screen-spec-explorer"
-              },
-              {
-                "label": "Open Graph",
-                "targetNodeId": "screen-graph"
-              }
-            ]
+            "title": "Dashboard Viewer",
+            "subtitle": "Human browsing the local web UI",
+            "actorRole": "User"
           }
         },
         {
-          "id": "screen-spec-explorer",
+          "id": "screen-specs",
+          "type": "desktopFrame",
+          "position": {
+            "x": 420,
+            "y": 60
+          },
+          "data": {
+            "title": "Feature Spec Explorer",
+            "subtitle": "src/web/components/ProgressDashboard.tsx",
+            "actorRole": "Developer, User",
+            "frameType": "desktop",
+            "mockupSvg": "<svg xmlns='http://www.w3.org/2000/svg' width='320' height='220' viewBox='0 0 320 220'><rect width='320' height='220' fill='#0f172a'/><rect x='0' y='0' width='320' height='28' fill='#090d16'/><circle cx='16' cy='14' r='6' fill='#6366f1'/><rect x='30' y='9' width='60' height='10' rx='2' fill='#334155'/><rect x='160' y='9' width='40' height='10' rx='2' fill='#334155'/><rect x='210' y='9' width='40' height='10' rx='2' fill='#334155'/><rect x='12' y='40' width='296' height='40' rx='6' fill='#131b2e' stroke='#1e293b'/><rect x='24' y='50' width='120' height='8' rx='2' fill='#94a3b8'/><rect x='24' y='64' width='240' height='6' rx='2' fill='#1e293b'/><rect x='240' y='48' width='56' height='24' rx='4' fill='#10b981' fill-opacity='0.25'/><rect x='12' y='92' width='296' height='60' rx='6' fill='#131b2e' stroke='#1e293b'/><rect x='24' y='102' width='90' height='8' rx='2' fill='#e2e8f0'/><rect x='24' y='118' width='260' height='6' rx='2' fill='#1e293b'/><rect x='24' y='130' width='200' height='6' rx='2' fill='#1e293b'/><rect x='12' y='160' width='140' height='48' rx='6' fill='#131b2e' stroke='#1e293b'/><rect x='164' y='160' width='144' height='48' rx='6' fill='#131b2e' stroke='#1e293b'/></svg>"
+          }
+        },
+        {
+          "id": "screen-wiki",
           "type": "desktopFrame",
           "position": {
             "x": 820,
             "y": 60
           },
           "data": {
-            "title": "Feature Spec & Architecture Explorer",
-            "subtitle": "src/web/components/ProgressDashboard.tsx",
-            "actorRole": "User & Developer",
+            "title": "Wiki Docs Viewer",
+            "subtitle": "src/web/components/WikiView.tsx",
+            "actorRole": "Developer, User",
             "frameType": "desktop",
-            "uiGuidelines": {
-              "layout": "Header KPI Banner + Filter Bar + Domain Feature Cards with Expandable 4 W Drawers",
-              "colors": [
-                "#090d16",
-                "#131b2e",
-                "#6366f1",
-                "#10b981",
-                "#ef4444"
-              ],
-              "typography": "Inter / System UI, 14px primary, 11px monospace IDs",
-              "responsive": "Fluid grid with responsive column layout",
-              "spacing": "p-6 main workspace, gap-4 metric grid, gap-3 sub-feature rows",
-              "components": [
-                "KPIBanner",
-                "FeatureFilterBar",
-                "SubFeatureCard",
-                "PlannedGapsCard",
-                "RoleActionPills"
-              ],
-              "accessibility": [
-                "High contrast status glyphs (>= 4.5:1)",
-                "Keyboard accessible filter dropdowns",
-                "Screen reader tags"
-              ],
-              "states": {
-                "loading": "Staggered card shimmer placeholders",
-                "empty": "Empty search state with \"Clear Filter\" button",
-                "error": "Connection loss banner with SSE auto-reconnect"
-              },
-              "interactionRules": [
-                "Real-time SSE updates without page reload",
-                "Click sub-feature to toggle 4 W drawer",
-                "Role filter switching"
-              ],
-              "specs": [
-                "Read-only AI status badges",
-                "Prominent Planned Gaps callout",
-                "Live overall progress bar"
-              ]
-            },
-            "visualLayout": {
-              "headerTitle": "@shakthizen/what-is-it — Feature Spec Explorer",
-              "navItems": [
-                "Specs & Gaps",
-                "Wiki Docs",
-                "Visual Graph"
-              ],
-              "contentBlocks": [
-                {
-                  "type": "stat",
-                  "label": "Overall Progress: 72% (13/18 Sub-Features)",
-                  "height": 40
-                },
-                {
-                  "type": "table",
-                  "label": "Domain Features, Sub-Features & 4 W Rationale",
-                  "height": 80
-                },
-                {
-                  "type": "card",
-                  "label": "What's Missing & Planned Gaps",
-                  "height": 45,
-                  "details": "Reliability, locking, and test gaps"
-                }
-              ]
-            },
-            "actions": [
-              {
-                "label": "View Flow Graph",
-                "targetNodeId": "screen-graph"
-              },
-              {
-                "label": "Inspect Screen Blueprint",
-                "targetNodeId": "drawer-specs"
-              }
-            ]
+            "mockupSvg": "<svg xmlns='http://www.w3.org/2000/svg' width='320' height='220' viewBox='0 0 320 220'><rect width='320' height='220' fill='#0f172a'/><rect x='12' y='12' width='70' height='196' rx='6' fill='#131b2e' stroke='#1e293b'/><rect x='22' y='24' width='50' height='8' rx='2' fill='#6366f1'/><rect x='22' y='42' width='50' height='6' rx='2' fill='#334155'/><rect x='22' y='54' width='50' height='6' rx='2' fill='#1e293b'/><rect x='92' y='12' width='150' height='196' rx='6' fill='#131b2e' stroke='#1e293b'/><rect x='104' y='26' width='100' height='10' rx='2' fill='#e2e8f0'/><rect x='104' y='46' width='126' height='6' rx='2' fill='#334155'/><rect x='104' y='58' width='126' height='6' rx='2' fill='#334155'/><rect x='104' y='70' width='90' height='6' rx='2' fill='#334155'/><rect x='104' y='92' width='126' height='40' rx='4' fill='#090d16'/><rect x='252' y='12' width='56' height='196' rx='6' fill='#131b2e' stroke='#1e293b'/><rect x='262' y='24' width='36' height='6' rx='2' fill='#6366f1'/><rect x='262' y='38' width='36' height='6' rx='2' fill='#334155'/></svg>"
           }
         },
         {
           "id": "screen-graph",
           "type": "desktopFrame",
           "position": {
-            "x": 1260,
+            "x": 1220,
             "y": 60
           },
           "data": {
-            "title": "Interactive Visual Graph Canvas",
+            "title": "Visual Flow Graph",
             "subtitle": "src/web/components/UserFlowGraph.tsx",
             "actorRole": "User",
             "frameType": "desktop",
-            "uiGuidelines": {
-              "layout": "Full-viewport SVG React Flow Canvas with Zoom/Pan controls and Right-Rail Drawer",
-              "colors": [
-                "#090d16",
-                "#1e293b",
-                "#6366f1",
-                "#10b981"
-              ],
-              "typography": "Monospace labels 11px, Heading Semi-bold 14px",
-              "responsive": "Pinch-to-zoom on touch, fluid full canvas",
-              "spacing": "p-0 canvas container with floating controls p-4",
-              "components": [
-                "ReactFlowCanvas",
-                "DesktopFrameNode",
-                "MobileFrameNode",
-                "ActorNode",
-                "FlowControls"
-              ],
-              "accessibility": [
-                "Keyboard navigation (arrow keys pan)",
-                "High contrast wireframe borders",
-                "Accessible tooltips"
-              ],
-              "states": {
-                "loading": "Canvas loading indicator",
-                "empty": "Empty canvas guide",
-                "error": "Canvas render fallback alert"
-              },
-              "interactionRules": [
-                "Click frame node to open design drawer",
-                "Drag and zoom canvas",
-                "Animated edge transitions"
-              ],
-              "specs": [
-                "Custom SVG frame renderers",
-                "Interactive bezier curve connections",
-                "Fit-view on mount"
-              ]
-            },
-            "visualLayout": {
-              "headerTitle": "Visual Architecture & User Journeys",
-              "navItems": [
-                "Reset Zoom",
-                "Lock View",
-                "Export PNG"
-              ],
-              "contentBlocks": [
-                {
-                  "type": "hero",
-                  "label": "Interactive React Flow Canvas (SVG Node Network)",
-                  "height": 95
-                }
-              ]
-            },
-            "actions": [
-              {
-                "label": "Select Node",
-                "targetNodeId": "drawer-specs"
-              }
-            ]
-          }
-        },
-        {
-          "id": "drawer-specs",
-          "type": "modalFrame",
-          "position": {
-            "x": 1700,
-            "y": 80
-          },
-          "data": {
-            "title": "Screen Blueprint & Design Specs Drawer",
-            "subtitle": "src/web/components/Drawer.tsx",
-            "actorRole": "User & Developer",
-            "frameType": "modal",
-            "uiGuidelines": {
-              "layout": "Sliding right-rail drawer (width 480px) with frosted glass backdrop",
-              "colors": [
-                "#0d131f",
-                "#1e293b",
-                "#6366f1",
-                "#10b981"
-              ],
-              "typography": "Heading 16px Bold, Body 13px Regular, Mono 11px Tokens",
-              "responsive": "Full width on mobile, 480px on desktop",
-              "spacing": "p-5 content container, space-y-4 tab groups",
-              "components": [
-                "DrawerContainer",
-                "ColorTokenGrid",
-                "TypographyList",
-                "AccessibilityChecklist",
-                "RawJSONTab"
-              ],
-              "accessibility": [
-                "Focus trap active when drawer open",
-                "Escape key closes drawer",
-                "ARIA role=\"complementary\""
-              ],
-              "states": {
-                "loading": "Drawer content shimmer",
-                "empty": "Select a node from the canvas to view design tokens",
-                "error": "Specs load error banner"
-              },
-              "interactionRules": [
-                "Close button or backdrop click dismisses",
-                "Tab switching between Guidelines and Layout Blueprint",
-                "Copy hex token on click"
-              ],
-              "specs": [
-                "Live wireframe blueprint blocks",
-                "WCAG 2.1 AA checklist",
-                "Zero layout shift"
-              ]
-            },
-            "visualLayout": {
-              "headerTitle": "Design System & UI Blueprint",
-              "contentBlocks": [
-                {
-                  "type": "list",
-                  "label": "Color Tokens & Typography Scale",
-                  "height": 45
-                },
-                {
-                  "type": "card",
-                  "label": "Accessibility & WCAG Checklist",
-                  "height": 40
-                },
-                {
-                  "type": "table",
-                  "label": "Wireframe Content Blocks Blueprint",
-                  "height": 50
-                }
-              ]
-            }
+            "mockupSvg": "<svg xmlns='http://www.w3.org/2000/svg' width='320' height='220' viewBox='0 0 320 220'><rect width='320' height='220' fill='#090d16'/><circle cx='40' cy='60' r='4' fill='#1e293b'/><circle cx='80' cy='60' r='4' fill='#1e293b'/><circle cx='40' cy='100' r='4' fill='#1e293b'/><circle cx='80' cy='100' r='4' fill='#1e293b'/><rect x='24' y='28' width='60' height='36' rx='18' fill='#312e81' stroke='#6366f1'/><path d='M84 46 C 130 46, 130 46, 170 60' stroke='#6366f1' stroke-dasharray='4 3' fill='none'/><rect x='170' y='30' width='90' height='60' rx='8' fill='#131b2e' stroke='#1e293b'/><rect x='182' y='42' width='40' height='8' rx='2' fill='#e2e8f0'/><rect x='182' y='58' width='66' height='6' rx='2' fill='#334155'/><rect x='182' y='70' width='50' height='6' rx='2' fill='#334155'/><path d='M260 60 C 300 60, 300 130, 260 150' stroke='#475569' fill='none'/><rect x='150' y='150' width='90' height='40' rx='8' fill='#0d131f' stroke='#6366f1'/></svg>"
           }
         }
       ],
       "edges": [
         {
-          "id": "e-guest-landing",
-          "source": "actor-guest",
-          "target": "screen-landing",
-          "label": "Visits Project",
-          "animated": true
-        },
-        {
-          "id": "e-user-specs",
-          "source": "actor-user",
-          "target": "screen-spec-explorer",
-          "label": "Opens Spec Explorer",
-          "animated": true
-        },
-        {
           "id": "e-dev-specs",
           "source": "actor-dev",
-          "target": "screen-spec-explorer",
-          "label": "Inspects Features & Gaps",
+          "target": "screen-specs",
+          "label": "init / status / task done",
           "animated": true
         },
         {
-          "id": "e-landing-specs",
-          "source": "screen-landing",
-          "target": "screen-spec-explorer",
-          "label": "Clicks \"Explore Specs\""
-        },
-        {
-          "id": "e-landing-graph",
-          "source": "screen-landing",
-          "target": "screen-graph",
-          "label": "Clicks \"Open Graph\""
-        },
-        {
-          "id": "e-specs-graph",
-          "source": "screen-spec-explorer",
-          "target": "screen-graph",
-          "label": "Switches to Visual Graph"
-        },
-        {
-          "id": "e-graph-drawer",
-          "source": "screen-graph",
-          "target": "drawer-specs",
-          "label": "Selects Frame Node",
+          "id": "e-viewer-specs",
+          "source": "actor-viewer",
+          "target": "screen-specs",
+          "label": "opens dashboard",
           "animated": true
+        },
+        {
+          "id": "e-specs-wiki",
+          "source": "screen-specs",
+          "target": "screen-wiki",
+          "label": "Wiki Docs tab"
+        },
+        {
+          "id": "e-wiki-graph",
+          "source": "screen-wiki",
+          "target": "screen-graph",
+          "label": "Visual Graph tab"
         }
       ]
     }

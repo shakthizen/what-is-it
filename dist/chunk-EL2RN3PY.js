@@ -867,6 +867,7 @@ function getProjectJsonSchema() {
           properties: {
             id: { type: "string" },
             featureId: { type: "string" },
+            subFeatureId: { type: "string", description: "ID of the SubFeature this task mirrors. Set this so marking the task done also flips the SubFeature that actually drives progress \u2014 a task without it cannot move the completion percentage." },
             title: { type: "string" },
             status: { type: "string", enum: ["todo", "in_progress", "done", "blocked"] },
             priority: { type: "string", enum: ["low", "medium", "high", "urgent"] },
@@ -913,8 +914,106 @@ function getProjectJsonSchema() {
             title: { type: "string" },
             actorRole: { type: "string" },
             description: { type: "string" },
-            nodes: { type: "array" },
-            edges: { type: "array" }
+            nodes: {
+              type: "array",
+              items: {
+                type: "object",
+                required: ["id", "type", "position", "data"],
+                properties: {
+                  id: { type: "string" },
+                  type: {
+                    type: "string",
+                    enum: ["desktopFrame", "mobileFrame", "modalFrame", "actorNode", "decisionNode", "actionNode"],
+                    description: "actorNode for a role/persona; desktopFrame/mobileFrame/modalFrame for a screen."
+                  },
+                  position: {
+                    type: "object",
+                    required: ["x", "y"],
+                    properties: { x: { type: "number" }, y: { type: "number" } }
+                  },
+                  data: {
+                    type: "object",
+                    required: ["title"],
+                    properties: {
+                      title: { type: "string" },
+                      subtitle: { type: "string", description: "Usually the real file path this screen/actor corresponds to." },
+                      actorRole: { type: "string" },
+                      frameType: { type: "string", enum: ["desktop", "mobile", "modal", "component"] },
+                      mockupSvg: {
+                        type: "string",
+                        description: "A single '<svg>...</svg>' string with a real, screen-specific mockup (actual layout/content, not a generic box). When set, frame node components render this instead of the generic built-in wireframe template \u2014 this is how you give a screen a real, agent-generated visual instead of the placeholder. Sanitized on render (no <script>, event handler attributes, or javascript:/unsafe URLs), so keep it to plain shape/text/gradient SVG markup."
+                      },
+                      uiGuidelines: {
+                        type: "object",
+                        description: "Only meaningful if mockupSvg is NOT set \u2014 informs the generic fallback template.",
+                        properties: {
+                          layout: { type: "string" },
+                          colors: { type: "array", items: { type: "string" } },
+                          typography: { type: "string" },
+                          responsive: { type: "string" },
+                          spacing: { type: "string" },
+                          components: { type: "array", items: { type: "string" } },
+                          accessibility: { type: "array", items: { type: "string" } },
+                          states: {
+                            type: "object",
+                            properties: { empty: { type: "string" }, loading: { type: "string" }, error: { type: "string" } }
+                          },
+                          interactionRules: { type: "array", items: { type: "string" } },
+                          specs: { type: "array", items: { type: "string" } }
+                        }
+                      },
+                      visualLayout: {
+                        type: "object",
+                        description: "Only meaningful if mockupSvg is NOT set \u2014 informs the generic fallback template.",
+                        properties: {
+                          headerTitle: { type: "string" },
+                          navItems: { type: "array", items: { type: "string" } },
+                          sidebarItems: { type: "array", items: { type: "string" } },
+                          bottomNav: { type: "array", items: { type: "string" } },
+                          contentBlocks: {
+                            type: "array",
+                            items: {
+                              type: "object",
+                              required: ["type", "label"],
+                              properties: {
+                                type: { type: "string", enum: ["stat", "card", "list", "chart", "form", "table", "hero", "tabs"] },
+                                label: { type: "string" },
+                                height: { type: "number" },
+                                details: { type: "string" }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      actions: {
+                        type: "array",
+                        description: "Outgoing interactions from this screen, drawn in the inspector drawer.",
+                        items: {
+                          type: "object",
+                          required: ["label", "targetNodeId"],
+                          properties: { label: { type: "string" }, targetNodeId: { type: "string" }, type: { type: "string" } }
+                        }
+                      },
+                      notes: { type: "string" }
+                    }
+                  }
+                }
+              }
+            },
+            edges: {
+              type: "array",
+              items: {
+                type: "object",
+                required: ["id", "source", "target"],
+                properties: {
+                  id: { type: "string" },
+                  source: { type: "string", description: "A node id from this flow's `nodes` array." },
+                  target: { type: "string", description: "A node id from this flow's `nodes` array." },
+                  label: { type: "string" },
+                  animated: { type: "boolean" }
+                }
+              }
+            }
           }
         }
       }
@@ -936,4 +1035,4 @@ export {
   validateProjectData,
   getProjectJsonSchema
 };
-//# sourceMappingURL=chunk-5UP6YMNR.js.map
+//# sourceMappingURL=chunk-EL2RN3PY.js.map

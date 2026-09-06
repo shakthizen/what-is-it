@@ -8,7 +8,7 @@ import {
   scanProject,
   synthesizeProjectData,
   validateProjectData
-} from "../chunk-5UP6YMNR.js";
+} from "../chunk-EL2RN3PY.js";
 
 // src/cli/index.ts
 import { Command } from "commander";
