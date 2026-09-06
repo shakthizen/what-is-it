@@ -49,7 +49,7 @@ ${bar}
 `;
   md += `| **Last Updated** | ${new Date(meta.updatedAt).toLocaleString()} |
 `;
-  md += `| **Interactive Dashboard** | Run \`npx @shakthizen/what-is-it\` to open visual Spec Explorer & Graph |
+  md += `| **Interactive Dashboard** | Run \`npx what-is-it\` to open visual Spec Explorer & Graph |
 
 `;
   md += `## Features & Sub-Feature Specs
@@ -105,11 +105,11 @@ ${bar}
 `;
   md += `### Guidelines for Humans & AI Agents
 `;
-  md += `- **For Humans**: Run \`npx @shakthizen/what-is-it\` in terminal to launch interactive Feature Spec Explorer, Design System Drawer, and SVG Flow Graph.
+  md += `- **For Humans**: Run \`npx what-is-it\` in terminal to launch interactive Feature Spec Explorer, Design System Drawer, and SVG Flow Graph.
 `;
   md += `- **For AI Agents**:
 `;
-  md += `  1. Check status at session start: \`npx @shakthizen/what-is-it status\`
+  md += `  1. Check status at session start: \`npx what-is-it status\`
 `;
   md += `  2. Read active focus and missing planned gaps before making assumptions
 `;
@@ -410,7 +410,7 @@ function buildDiscoveredFeature(spec) {
       title: `+${overflow} additional file(s) not shown`,
       status: "implemented",
       what: `${overflow} more files matched this category but were omitted to keep the state file compact.`,
-      why: "Keeps the compressed binary state small; full list available via a fresh scan or `/what-is-it-init`.",
+      why: "Keeps the compressed binary state small; full list available via a fresh scan or `/wii-init`.",
       how: "Category listing capped during synthesis.",
       where: spec.files.slice(MAX_SUBFEATURES_PER_CATEGORY).join(", ") || "N/A",
       when: "Discovered at last `init` scan"
@@ -622,7 +622,7 @@ ${archSummary}
 +-------------------------------------------------------------+
 \`\`\`
 
-> This topology reflects file-path pattern matching only \u2014 no source code was read. Run \`/what-is-it-init\` in your AI agent chat to replace this with a verified architecture, real user flows, and UI specs.
+> This topology reflects file-path pattern matching only \u2014 no source code was read. Run \`/wii-init\` in your AI agent chat to replace this with a verified architecture, real user flows, and UI specs.
 
 ## Tech Stack Decisions
 
@@ -663,11 +663,11 @@ ${recentCommits.length > 0 ? recentCommits.map((c) => `- \`${c}\``).join("\n") :
 | Tests | ${testFiles.length} |
 | Docs | ${docFiles.length} |
 
-This inventory is a **static, best-effort baseline** produced by \`npx @shakthizen/what-is-it init\` \u2014 it only reflects file-path patterns, not verified feature rationale, UI design, or real user flows.
+This inventory is a **static, best-effort baseline** produced by \`npx what-is-it init\` \u2014 it only reflects file-path patterns, not verified feature rationale, UI design, or real user flows.
 
 ## Next Step: Deep Agent Analysis
 
-Run \`/what-is-it-init\` in your AI agent chat (Claude Code, Cursor, Antigravity) so it can:
+Run \`/wii-init\` in your AI agent chat (Claude Code, Cursor, Antigravity) so it can:
 1. Actually read the code behind this inventory and correct/extend feature rationale (why/how).
 2. Define real actor roles and user flows, with per-screen mockups (\`mockupSvg\`) instead of generic placeholders.
 3. Flag genuinely missing features, bugs, and security gaps it finds \u2014 kept separate from this baseline inventory so the two are never conflated.
@@ -692,7 +692,7 @@ Run \`/what-is-it-init\` in your AI agent chat (Claude Code, Cursor, Antigravity
       position: { x: 40, y: 200 },
       data: {
         title: actorLabel,
-        subtitle: "Auto-detected \u2014 refine via /what-is-it-init",
+        subtitle: "Auto-detected \u2014 refine via /wii-init",
         actorRole: actorLabel
       }
     },
@@ -728,7 +728,7 @@ Run \`/what-is-it-init\` in your AI agent chat (Claude Code, Cursor, Antigravity
       id: "discovered-flow",
       title: "Discovered Entry Points (Auto-Generated Baseline)",
       actorRole: actorLabel,
-      description: "Best-effort flow built from discovered files. Run /what-is-it-init for real user journeys and per-screen mockups.",
+      description: "Best-effort flow built from discovered files. Run /wii-init for real user journeys and per-screen mockups.",
       nodes,
       edges
     }
@@ -1035,4 +1035,4 @@ export {
   validateProjectData,
   getProjectJsonSchema
 };
-//# sourceMappingURL=chunk-CXGKVEMC.js.map
+//# sourceMappingURL=chunk-MKNTG5LN.js.map

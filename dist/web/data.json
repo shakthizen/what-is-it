@@ -12,9 +12,9 @@
       "@xyflow/react",
       "Commander"
     ],
-    "architectureSummary": "A CLI (bin/what-is-it.js) that scans a target repo and persists a compressed binary state (.what-is-it.bin) describing its features, tasks, wiki docs, and React-Flow user journeys. `init` builds a fast, honest file-path-based baseline; the agent-run `/what-is-it-init` deep pass replaces it with a verified model (real rationale, real flows, real per-screen SVG mockups). A local Node HTTP server exposes that state to a React dashboard (Feature Spec Explorer, Wiki Docs, Visual Flow Graph) over a REST API + SSE, with same-origin enforcement and payload validation on every write. The same bundle also exports statically for GitHub Pages.",
+    "architectureSummary": "A CLI (bin/what-is-it.js) that scans a target repo and persists a compressed binary state (.what-is-it.bin) describing its features, tasks, wiki docs, and React-Flow user journeys. `init` builds a fast, honest file-path-based baseline; the agent-run `/wii-init` deep pass replaces it with a verified model (real rationale, real flows, real per-screen SVG mockups). A local Node HTTP server exposes that state to a React dashboard (Feature Spec Explorer, Wiki Docs, Visual Flow Graph) over a REST API + SSE, with same-origin enforcement and payload validation on every write. The same bundle also exports statically for GitHub Pages.",
     "version": "1.1.0",
-    "updatedAt": "2026-09-06T10:09:21.780Z",
+    "updatedAt": "2026-09-06T10:55:45.282Z",
     "overallProgress": 73
   },
   "features": [
@@ -92,9 +92,9 @@
           "id": "sub-scanner-two-phase",
           "title": "Two-Phase Init → Deep-Pass Model",
           "status": "implemented",
-          "what": "`init` never fabricates gaps or rationale; `/what-is-it-init` (agent-driven) is the only place real Why/How and `missingDetails` get written.",
+          "what": "`init` never fabricates gaps or rationale; `/wii-init` (agent-driven) is the only place real Why/How and `missingDetails` get written.",
           "why": "Keeps 'what actually exists' (verifiable from files) strictly separate from 'what's missing/broken' (a judgment call requiring code comprehension).",
-          "how": "init's baseline sub-features carry neutral 'discovered, not yet verified' language; the /what-is-it-init workflow instructs Phase 1 (verify real features/flows) before Phase 2 (flag gaps).",
+          "how": "init's baseline sub-features carry neutral 'discovered, not yet verified' language; the /wii-init workflow instructs Phase 1 (verify real features/flows) before Phase 2 (flag gaps).",
           "where": "src/core/scanner.ts, src/cli/skills.ts",
           "when": "Accuracy rewrite"
         }
@@ -174,9 +174,9 @@
           "id": "sub-skills-two-phase-instructions",
           "title": "Two-Phase Deep-Analysis Instructions",
           "status": "implemented",
-          "what": "The generated /what-is-it-init workflow now explicitly sequences Phase 1 (verify real features/flows, generate mockupSvg per screen) before Phase 2 (flag missing/bugs/security), instead of one flat list.",
+          "what": "The generated /wii-init workflow now explicitly sequences Phase 1 (verify real features/flows, generate mockupSvg per screen) before Phase 2 (flag missing/bugs/security), instead of one flat list.",
           "why": "Previously the instructions didn't distinguish 'what exists' from 'what's missing', so an agent could conflate real features with wishlist gaps.",
-          "how": "Rewrote generateDynamicSkill() section 6 and the what-is-it-init.md template in installSkills().",
+          "how": "Rewrote generateDynamicSkill() section 6 and the wii-init.md template in installSkills().",
           "where": "src/cli/skills.ts",
           "when": "Accuracy rewrite"
         }
@@ -453,7 +453,7 @@
           "level": 2
         }
       ],
-      "content": "## High-Level Layers\n\n```text\n+----------------------------------------------------------------+\n|  CLI (src/cli/index.ts)                                        |\n|  init / status / task / feature / export / import / schema     |\n+---------------------------+--------------------------------------+\n                            |\n                            v\n+----------------------------------------------------------------+\n|  Core Engine (src/core/*)                                       |\n|  scanner.ts (baseline synthesis) -> storage.ts (compress/validate/write .what-is-it.bin) |\n+---------------------------+--------------------------------------+\n                            |\n                            v\n+----------------------------------------------------------------+\n|  Local Server (src/cli/server.ts)                                |\n|  Static SPA + REST API (/api/project, /api/task/toggle) + SSE   |\n+---------------------------+--------------------------------------+\n                            |\n                            v\n+----------------------------------------------------------------+\n|  Web Dashboard (src/web/*)                                       |\n|  Feature Spec Explorer | Wiki Docs | Visual Flow Graph            |\n+----------------------------------------------------------------+\n```\n\n## Data Flow\n\n1. `init` scans the target repo by file path only and writes an honest baseline to `.what-is-it.bin`.\n2. An AI agent runs `/what-is-it-init`, actually reads the code, and `import`s a verified replacement (real rationale, real flows, real per-screen `mockupSvg`).\n3. `npx what-is-it` starts the local server, which serves the SPA and streams SSE updates whenever `.what-is-it.bin` changes (e.g. from `task done`).\n4. For GitHub Pages / no-server use, `scripts/export-static.js` snapshots the same state to `data.json`, and the SPA falls back to fetching that file.\n\n## Tech Stack\n\n- **CLI**: Commander.js, picocolors, Node's zlib for binary compression.\n- **Web**: React 19, Vite, Tailwind CSS 4, `@xyflow/react` for the flow canvas, `marked` for wiki markdown.\n- **Build**: `tsup` for the CLI bundle, `vite build` for the SPA, both checked into `dist/`/`docs/` for npm packaging and GitHub Pages.\n"
+      "content": "## High-Level Layers\n\n```text\n+----------------------------------------------------------------+\n|  CLI (src/cli/index.ts)                                        |\n|  init / status / task / feature / export / import / schema     |\n+---------------------------+--------------------------------------+\n                            |\n                            v\n+----------------------------------------------------------------+\n|  Core Engine (src/core/*)                                       |\n|  scanner.ts (baseline synthesis) -> storage.ts (compress/validate/write .what-is-it.bin) |\n+---------------------------+--------------------------------------+\n                            |\n                            v\n+----------------------------------------------------------------+\n|  Local Server (src/cli/server.ts)                                |\n|  Static SPA + REST API (/api/project, /api/task/toggle) + SSE   |\n+---------------------------+--------------------------------------+\n                            |\n                            v\n+----------------------------------------------------------------+\n|  Web Dashboard (src/web/*)                                       |\n|  Feature Spec Explorer | Wiki Docs | Visual Flow Graph            |\n+----------------------------------------------------------------+\n```\n\n## Data Flow\n\n1. `init` scans the target repo by file path only and writes an honest baseline to `.what-is-it.bin`.\n2. An AI agent runs `/wii-init`, actually reads the code, and `import`s a verified replacement (real rationale, real flows, real per-screen `mockupSvg`).\n3. `npx what-is-it` starts the local server, which serves the SPA and streams SSE updates whenever `.what-is-it.bin` changes (e.g. from `task done`).\n4. For GitHub Pages / no-server use, `scripts/export-static.js` snapshots the same state to `data.json`, and the SPA falls back to fetching that file.\n\n## Tech Stack\n\n- **CLI**: Commander.js, picocolors, Node's zlib for binary compression.\n- **Web**: React 19, Vite, Tailwind CSS 4, `@xyflow/react` for the flow canvas, `marked` for wiki markdown.\n- **Build**: `tsup` for the CLI bundle, `vite build` for the SPA, both checked into `dist/`/`docs/` for npm packaging and GitHub Pages.\n"
     },
     {
       "id": "two-phase-init-model",
@@ -474,11 +474,11 @@
         },
         {
           "id": "phase-2",
-          "title": "Phase 2 — /what-is-it-init (deep pass)",
+          "title": "Phase 2 — /wii-init (deep pass)",
           "level": 2
         }
       ],
-      "content": "## Why Two Phases\n\nEarlier versions of `init` tried to do deep analysis without reading any code, and ended up hardcoding a feature narrative that described what-is-it's *own* architecture on every project it ran against. The fix was to split responsibilities cleanly: `init` only ever claims what a file-path scan can actually verify; real understanding is deferred to an agent that can read source.\n\n## Phase 1 — `init` (baseline)\n\n- Detects frameworks/project type from manifests.\n- Buckets files into routes/components/services/cli/core/tests/docs by path pattern.\n- Emits one Feature per non-empty bucket, one SubFeature per file, with neutral 'discovered, not yet verified' rationale.\n- Never invents `missingDetails` or guesses actor roles/personas.\n\n## Phase 2 — `/what-is-it-init` (deep pass)\n\nRun as a slash command in an AI agent's chat. Instructed (see `.claude/commands/what-is-it-init.md`) to, in strict order:\n1. Actually read the code and replace the baseline's generic sub-features with real Why/How rationale and real user flows — including a real inline SVG `mockupSvg` per screen instead of the generic wireframe template.\n2. **Only then** flag genuinely missing features, bugs, and security issues as separate `status: \"missing\"` entries, kept out of the 'what exists' inventory built in step 1.\n3. `import` the result, replacing the baseline.\n"
+      "content": "## Why Two Phases\n\nEarlier versions of `init` tried to do deep analysis without reading any code, and ended up hardcoding a feature narrative that described what-is-it's *own* architecture on every project it ran against. The fix was to split responsibilities cleanly: `init` only ever claims what a file-path scan can actually verify; real understanding is deferred to an agent that can read source.\n\n## Phase 1 — `init` (baseline)\n\n- Detects frameworks/project type from manifests.\n- Buckets files into routes/components/services/cli/core/tests/docs by path pattern.\n- Emits one Feature per non-empty bucket, one SubFeature per file, with neutral 'discovered, not yet verified' rationale.\n- Never invents `missingDetails` or guesses actor roles/personas.\n\n## Phase 2 — `/wii-init` (deep pass)\n\nRun as a slash command in an AI agent's chat. Instructed (see `.claude/commands/wii-init.md`) to, in strict order:\n1. Actually read the code and replace the baseline's generic sub-features with real Why/How rationale and real user flows — including a real inline SVG `mockupSvg` per screen instead of the generic wireframe template.\n2. **Only then** flag genuinely missing features, bugs, and security issues as separate `status: \"missing\"` entries, kept out of the 'what exists' inventory built in step 1.\n3. `import` the result, replacing the baseline.\n"
     },
     {
       "id": "security-model",

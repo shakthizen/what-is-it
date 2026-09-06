@@ -11,7 +11,7 @@ import {
   scanProject,
   synthesizeProjectData,
   validateProjectData
-} from "../chunk-CXGKVEMC.js";
+} from "../chunk-MKNTG5LN.js";
 export {
   DEFAULT_FILE_NAME,
   DEFAULT_MARKDOWN_NAME,

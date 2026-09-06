@@ -13,7 +13,7 @@ Sub-Features: 30 Total | 22 Implemented | 0 In Progress | 8 Missing Gaps
 | **Project Type** | `cli` |
 | **Frameworks / Stack** | `React`, `Vite`, `Tailwind CSS`, `CLI`, `@xyflow/react`, `Commander` |
 | **Version** | `v1.1.0` |
-| **Last Updated** | 9/6/2026, 2:02:03 PM |
+| **Last Updated** | 9/6/2026, 4:25:33 PM |
 | **Interactive Dashboard** | Run `npx @shakthizen/what-is-it` to open visual Spec Explorer & Graph |
 
 ## Features & Sub-Feature Specs
@@ -34,7 +34,7 @@ Sub-Features: 30 Total | 22 Implemented | 0 In Progress | 8 Missing Gaps
 | Status | Sub-Feature | Capability (What) | Target Files (Where) | Phase (When) |
 | :--- | :--- | :--- | :--- | :--- |
 | 🟢 Implemented | **Real File-Based Feature Inventory** | synthesizeProjectData() builds features/wiki/flows purely from what scanProject() actually found (real routes/components/services/CLI/core files) instead of a fixed narrative. | `src/core/scanner.ts` | Accuracy rewrite |
-| 🟢 Implemented | **Two-Phase Init → Deep-Pass Model** | `init` never fabricates gaps or rationale; `/what-is-it-init` (agent-driven) is the only place real Why/How and `missingDetails` get written. | `src/core/scanner.ts, src/cli/skills.ts` | Accuracy rewrite |
+| 🟢 Implemented | **Two-Phase Init → Deep-Pass Model** | `init` never fabricates gaps or rationale; `/wii-init` (agent-driven) is the only place real Why/How and `missingDetails` get written. | `src/core/scanner.ts, src/cli/skills.ts` | Accuracy rewrite |
 
 ### CLI Command Suite (🟡 In Progress — `50%`)
 *init/status/task/feature/export/import/schema/install-skill commands and the default local-dashboard launcher.*
@@ -52,7 +52,7 @@ Sub-Features: 30 Total | 22 Implemented | 0 In Progress | 8 Missing Gaps
 | Status | Sub-Feature | Capability (What) | Target Files (Where) | Phase (When) |
 | :--- | :--- | :--- | :--- | :--- |
 | 🟢 Implemented | **Cross-IDE Rule & Slash Command Generator** | Writes .agents/skills/what-is-it/SKILL.md, .agent/workflows/*.md, .claude/commands/*.md, .cursor/rules/what-is-it.mdc, and idempotently updates AGENTS.md/CLAUDE.md/.cursorrules/.windsurfrules/.clinerules via a marker block. | `src/cli/skills.ts` | Phase 1 MVP |
-| 🟢 Implemented | **Two-Phase Deep-Analysis Instructions** | The generated /what-is-it-init workflow now explicitly sequences Phase 1 (verify real features/flows, generate mockupSvg per screen) before Phase 2 (flag missing/bugs/security), instead of one flat list. | `src/cli/skills.ts` | Accuracy rewrite |
+| 🟢 Implemented | **Two-Phase Deep-Analysis Instructions** | The generated /wii-init workflow now explicitly sequences Phase 1 (verify real features/flows, generate mockupSvg per screen) before Phase 2 (flag missing/bugs/security), instead of one flat list. | `src/cli/skills.ts` | Accuracy rewrite |
 
 ### Local Web Server & Live Sync (🟡 In Progress — `60%`)
 *Zero-dependency HTTP server serving the SPA, a small REST API, and Server-Sent Events for live updates.*

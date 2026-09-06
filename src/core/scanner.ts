@@ -237,7 +237,7 @@ export function scanProject(rootDir: string): ScanContext {
 // inventory (which files exist, grouped by role) so a project always starts
 // from an accurate baseline, whatever its shape. Judgment calls that require
 // actually reading code — real feature rationale, UI specs, user flows, and
-// flagged missing/bug/security work — belong to the deep `/what-is-it-init`
+// flagged missing/bug/security work — belong to the deep `/wii-init`
 // agent pass, which reads this baseline and replaces/extends it via `import`.
 // ---------------------------------------------------------------------------
 
@@ -290,7 +290,7 @@ function buildDiscoveredFeature(spec: CategorySpec): Feature {
       title: `+${overflow} additional file(s) not shown`,
       status: 'implemented',
       what: `${overflow} more files matched this category but were omitted to keep the state file compact.`,
-      why: 'Keeps the compressed binary state small; full list available via a fresh scan or `/what-is-it-init`.',
+      why: 'Keeps the compressed binary state small; full list available via a fresh scan or `/wii-init`.',
       how: 'Category listing capped during synthesis.',
       where: spec.files.slice(MAX_SUBFEATURES_PER_CATEGORY).join(', ') || 'N/A',
       when: 'Discovered at last `init` scan'
@@ -492,7 +492,7 @@ export function synthesizeProjectData(context: ScanContext): ProjectData {
 
   // Wiki: two honest pages built only from real scan data. No fabricated design tokens,
   // personas, or user journeys — those require actually reading the code and belong to the
-  // `/what-is-it-init` agent pass.
+  // `/wii-init` agent pass.
   const wiki: WikiPage[] = [
     {
       id: 'architecture-overview',
@@ -506,7 +506,7 @@ export function synthesizeProjectData(context: ScanContext): ProjectData {
         { id: 'directory-structure', title: 'Directory Structure', level: 2 },
         { id: 'recent-activity', title: 'Recent Activity', level: 2 }
       ],
-      content: `## High-Level Topology\n\n${archSummary}\n\n\`\`\`text\n+-------------------------------------------------------------+\n|                      Client / UI Layer                      |\n|   Routes: ${routes.length} discovered | Components: ${components.length} discovered  |\n+------------------------------+------------------------------+\n                               |\n                               v\n+-------------------------------------------------------------+\n|                   Services & Data Layer                     |\n|   API Endpoints / Services: ${services.length} discovered             |\n+-------------------------------------------------------------+\n                               |\n                               v\n+-------------------------------------------------------------+\n|                   Core Engine & CLI Layer                   |\n|   Core / CLI Modules: ${cliFiles.length + coreFiles.length} discovered               |\n+-------------------------------------------------------------+\n\`\`\`\n\n> This topology reflects file-path pattern matching only — no source code was read. Run \`/what-is-it-init\` in your AI agent chat to replace this with a verified architecture, real user flows, and UI specs.\n\n## Tech Stack Decisions\n\n- **Project Category**: \`${projectType.toUpperCase()}\`\n- **Primary Frameworks**: ${frameworks.map(f => `\`${f}\``).join(', ') || 'Vanilla / Custom'}\n- **Live Documentation**: \`@shakthizen/what-is-it\` compressed binary state & multi-agent skill.\n\n## Directory Structure\n\n\`\`\`text\n${directories.slice(0, 16).map(d => `📁 ${d}`).join('\n') || '📁 root'}\n\`\`\`\n\n## Recent Activity\n\n${recentCommits.length > 0 ? recentCommits.map(c => `- \`${c}\``).join('\n') : '_No git history available._'}\n`
+      content: `## High-Level Topology\n\n${archSummary}\n\n\`\`\`text\n+-------------------------------------------------------------+\n|                      Client / UI Layer                      |\n|   Routes: ${routes.length} discovered | Components: ${components.length} discovered  |\n+------------------------------+------------------------------+\n                               |\n                               v\n+-------------------------------------------------------------+\n|                   Services & Data Layer                     |\n|   API Endpoints / Services: ${services.length} discovered             |\n+-------------------------------------------------------------+\n                               |\n                               v\n+-------------------------------------------------------------+\n|                   Core Engine & CLI Layer                   |\n|   Core / CLI Modules: ${cliFiles.length + coreFiles.length} discovered               |\n+-------------------------------------------------------------+\n\`\`\`\n\n> This topology reflects file-path pattern matching only — no source code was read. Run \`/wii-init\` in your AI agent chat to replace this with a verified architecture, real user flows, and UI specs.\n\n## Tech Stack Decisions\n\n- **Project Category**: \`${projectType.toUpperCase()}\`\n- **Primary Frameworks**: ${frameworks.map(f => `\`${f}\``).join(', ') || 'Vanilla / Custom'}\n- **Live Documentation**: \`@shakthizen/what-is-it\` compressed binary state & multi-agent skill.\n\n## Directory Structure\n\n\`\`\`text\n${directories.slice(0, 16).map(d => `📁 ${d}`).join('\n') || '📁 root'}\n\`\`\`\n\n## Recent Activity\n\n${recentCommits.length > 0 ? recentCommits.map(c => `- \`${c}\``).join('\n') : '_No git history available._'}\n`
     },
     {
       id: 'codebase-inventory',
@@ -518,7 +518,7 @@ export function synthesizeProjectData(context: ScanContext): ProjectData {
         { id: 'discovered-categories', title: 'Discovered Categories', level: 2 },
         { id: 'next-step', title: 'Next Step: Deep Agent Analysis', level: 2 }
       ],
-      content: `## Discovered Categories\n\n| Category | Files Found |\n| :--- | ---: |\n| Routes & Screens | ${routes.length} |\n| UI Components | ${components.length} |\n| Services & APIs | ${services.length} |\n| CLI & Automation | ${cliFiles.length} |\n| Core Domain Logic | ${coreFiles.length} |\n| Tests | ${testFiles.length} |\n| Docs | ${docFiles.length} |\n\nThis inventory is a **static, best-effort baseline** produced by \`npx @shakthizen/what-is-it init\` — it only reflects file-path patterns, not verified feature rationale, UI design, or real user flows.\n\n## Next Step: Deep Agent Analysis\n\nRun \`/what-is-it-init\` in your AI agent chat (Claude Code, Cursor, Antigravity) so it can:\n1. Actually read the code behind this inventory and correct/extend feature rationale (why/how).\n2. Define real actor roles and user flows, with per-screen mockups (\`mockupSvg\`) instead of generic placeholders.\n3. Flag genuinely missing features, bugs, and security gaps it finds — kept separate from this baseline inventory so the two are never conflated.\n`
+      content: `## Discovered Categories\n\n| Category | Files Found |\n| :--- | ---: |\n| Routes & Screens | ${routes.length} |\n| UI Components | ${components.length} |\n| Services & APIs | ${services.length} |\n| CLI & Automation | ${cliFiles.length} |\n| Core Domain Logic | ${coreFiles.length} |\n| Tests | ${testFiles.length} |\n| Docs | ${docFiles.length} |\n\nThis inventory is a **static, best-effort baseline** produced by \`npx what-is-it init\` — it only reflects file-path patterns, not verified feature rationale, UI design, or real user flows.\n\n## Next Step: Deep Agent Analysis\n\nRun \`/wii-init\` in your AI agent chat (Claude Code, Cursor, Antigravity) so it can:\n1. Actually read the code behind this inventory and correct/extend feature rationale (why/how).\n2. Define real actor roles and user flows, with per-screen mockups (\`mockupSvg\`) instead of generic placeholders.\n3. Flag genuinely missing features, bugs, and security gaps it finds — kept separate from this baseline inventory so the two are never conflated.\n`
     }
   ];
 
@@ -560,7 +560,7 @@ export function synthesizeProjectData(context: ScanContext): ProjectData {
       position: { x: 40, y: 200 },
       data: {
         title: actorLabel,
-        subtitle: 'Auto-detected — refine via /what-is-it-init',
+        subtitle: 'Auto-detected — refine via /wii-init',
         actorRole: actorLabel
       }
     },
@@ -598,7 +598,7 @@ export function synthesizeProjectData(context: ScanContext): ProjectData {
       id: 'discovered-flow',
       title: 'Discovered Entry Points (Auto-Generated Baseline)',
       actorRole: actorLabel,
-      description: 'Best-effort flow built from discovered files. Run /what-is-it-init for real user journeys and per-screen mockups.',
+      description: 'Best-effort flow built from discovered files. Run /wii-init for real user journeys and per-screen mockups.',
       nodes,
       edges
     }

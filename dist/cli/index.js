@@ -8,7 +8,7 @@ import {
   scanProject,
   synthesizeProjectData,
   validateProjectData
-} from "../chunk-CXGKVEMC.js";
+} from "../chunk-MKNTG5LN.js";
 
 // src/cli/index.ts
 import { Command } from "commander";
@@ -360,7 +360,7 @@ var MIME_TYPES = {
 function startServer(rootDir, port = 3456, shouldOpen = true) {
   const binPath = path2.resolve(rootDir, DEFAULT_FILE_NAME);
   if (!fs2.existsSync(binPath)) {
-    console.error(pc.red(`Error: ${DEFAULT_FILE_NAME} not found in ${rootDir}. Run 'npx @shakthizen/what-is-it init' first.`));
+    console.error(pc.red(`Error: ${DEFAULT_FILE_NAME} not found in ${rootDir}. Run 'npx what-is-it init' first.`));
     process.exit(1);
   }
   const currentDir = path2.dirname(fileURLToPath(import.meta.url));
@@ -614,9 +614,9 @@ function formatCavemanStatus(data) {
   }
   lines.push("");
   lines.push(`${pc2.dim("AGENT COMMANDS:")}`);
-  lines.push(`- Check status:  ${pc2.cyan("npx @shakthizen/what-is-it status")}`);
-  lines.push(`- Inspect specs: ${pc2.cyan("npx @shakthizen/what-is-it schema")}`);
-  lines.push(`- Open UI:       ${pc2.cyan("npx @shakthizen/what-is-it")}`);
+  lines.push(`- Check status:  ${pc2.cyan("npx what-is-it status")}`);
+  lines.push(`- Inspect specs: ${pc2.cyan("npx what-is-it schema")}`);
+  lines.push(`- Open UI:       ${pc2.cyan("npx what-is-it")}`);
   return lines.join("\n");
 }
 function formatCavemanSuccess(action, id, detail) {
@@ -626,7 +626,7 @@ function formatCavemanSuccess(action, id, detail) {
   return msg;
 }
 function formatCavemanError(err) {
-  return `${pc2.bold(pc2.red("GRR."))} ERROR: ${err}. RUN ${pc2.cyan("npx @shakthizen/what-is-it status")} TO CHECK.`;
+  return `${pc2.bold(pc2.red("GRR."))} ERROR: ${err}. RUN ${pc2.cyan("npx what-is-it status")} TO CHECK.`;
 }
 
 // src/cli/index.ts

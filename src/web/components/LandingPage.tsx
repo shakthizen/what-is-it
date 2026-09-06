@@ -256,7 +256,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ data, onOpenDocs }) =>
               </div>
               <h3 className="text-base font-bold text-white">Agent Synthesis (Brain)</h3>
               <p className="text-xs text-slate-400 leading-relaxed">
-                Open Antigravity, Cursor, or Claude Code and type <code className="text-slate-200 font-mono">/what-is-it-init</code>. The agent reads your code, actor roles, routes, and populates full features and tasks with Why, How, Where, When.
+                Open Antigravity, Cursor, or Claude Code and type <code className="text-slate-200 font-mono">/wii-init</code>. The agent reads your code, actor roles, routes, and populates full features and tasks with Why, How, Where, When.
               </p>
             </div>
 
@@ -267,7 +267,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ data, onOpenDocs }) =>
               </div>
               <h3 className="text-base font-bold text-white">Live Memory Forever</h3>
               <p className="text-xs text-slate-400 leading-relaxed">
-                As you vibe code, the agent marks tasks done with <code className="text-slate-200 font-mono">/task-done</code>. Your second monitor dashboard updates live via Server-Sent Events with zero refresh needed.
+                As you vibe code, the agent marks tasks done with <code className="text-slate-200 font-mono">/wii-task-done</code>. Your second monitor dashboard updates live via Server-Sent Events with zero refresh needed.
               </p>
             </div>
           </div>
@@ -291,7 +291,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ data, onOpenDocs }) =>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="bg-[#0d131f] border border-slate-800 rounded-xl p-5 space-y-2">
             <div className="flex items-center gap-2">
-              <code className="text-indigo-400 font-mono text-sm font-bold">/what-is-it-init</code>
+              <code className="text-indigo-400 font-mono text-sm font-bold">/wii-init</code>
               <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-400">Bootstrap</span>
             </div>
             <p className="text-xs text-slate-400 leading-relaxed">
@@ -301,7 +301,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ data, onOpenDocs }) =>
 
           <div className="bg-[#0d131f] border border-slate-800 rounded-xl p-5 space-y-2">
             <div className="flex items-center gap-2">
-              <code className="text-indigo-400 font-mono text-sm font-bold">/status</code>
+              <code className="text-indigo-400 font-mono text-sm font-bold">/wii-status</code>
               <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-400">Context Check</span>
             </div>
             <p className="text-xs text-slate-400 leading-relaxed">
@@ -311,7 +311,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ data, onOpenDocs }) =>
 
           <div className="bg-[#0d131f] border border-slate-800 rounded-xl p-5 space-y-2">
             <div className="flex items-center gap-2">
-              <code className="text-indigo-400 font-mono text-sm font-bold">/task-done &lt;id&gt;</code>
+              <code className="text-indigo-400 font-mono text-sm font-bold">/wii-task-done &lt;id&gt;</code>
               <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-400">Sync Memory</span>
             </div>
             <p className="text-xs text-slate-400 leading-relaxed">
