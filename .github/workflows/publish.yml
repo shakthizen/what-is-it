@@ -9,10 +9,6 @@ on:
         description: 'npm distribution tag (default: latest)'
         required: true
         default: 'latest'
-      otp:
-        description: '6-digit npm 2FA OTP code (if not using an Automation token)'
-        required: false
-        default: ''
 
 jobs:
   build-and-publish:
@@ -43,12 +39,14 @@ jobs:
       - name: Build Web and CLI
         run: pnpm build
 
-      - name: Publish to npm
-        run: |
-          OTP_FLAG=""
-          if [ -n "${{ github.event.inputs.otp }}" ]; then
-            OTP_FLAG="--otp=${{ github.event.inputs.otp }}"
-          fi
-          npm publish --access public --tag ${{ github.event.inputs.tag || 'latest' }} $OTP_FLAG
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      # Trusted Publishing (OIDC) requires npm 11.5.1+; actions/setup-node's bundled
+      # npm may be older, so pin it explicitly rather than relying on Node 22's default.
+      - name: Ensure npm supports OIDC trusted publishing
+        run: npm install -g npm@latest
+
+      # No NODE_AUTH_TOKEN / NPM_TOKEN here on purpose: this package has a Trusted
+      # Publisher configured on npm (shakthizen/what-is-it -> publish.yml), so npm
+      # exchanges this job's OIDC id-token for a short-lived publish credential
+      # instead of requiring a static secret or a 2FA one-time password.
+      - name: Publish to npm via OIDC trusted publisher
+        run: npm publish --access public --tag ${{ github.event.inputs.tag || 'latest' }}
