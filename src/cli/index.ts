@@ -33,7 +33,7 @@ const program = new Command();
 program
   .name('what-is-it')
   .description('Live Project Memory, Task Tracker & Interactive Wiki for Vibe Coding')
-  .version('1.1.1');
+  .version('1.2.0');
 
 function askQuestion(query: string): Promise<string> {
   if (!process.stdin.isTTY) return Promise.resolve('');

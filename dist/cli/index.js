@@ -631,7 +631,7 @@ function formatCavemanError(err) {
 
 // src/cli/index.ts
 var program = new Command();
-program.name("what-is-it").description("Live Project Memory, Task Tracker & Interactive Wiki for Vibe Coding").version("1.1.1");
+program.name("what-is-it").description("Live Project Memory, Task Tracker & Interactive Wiki for Vibe Coding").version("1.2.0");
 function askQuestion(query) {
   if (!process.stdin.isTTY) return Promise.resolve("");
   const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
