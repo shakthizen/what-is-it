@@ -13,7 +13,13 @@ import {
 import { scanProject, synthesizeProjectData } from '../core/scanner.js';
 import { generateMarkdownOverview } from '../core/markdown.js';
 import { getProjectJsonSchema, validateProjectData } from '../core/schema.js';
-import { installSkills, installGlobalSkill } from './skills.js';
+import {
+  installSkills,
+  parseAgentTargets,
+  DEFAULT_AGENT_TARGETS,
+  AGENT_TARGETS,
+  type AgentTarget
+} from './skills.js';
 import { startServer } from './server.js';
 import {
   formatCavemanStatus,
@@ -35,9 +41,38 @@ function askQuestion(query: string): Promise<string> {
   return new Promise(resolve => {
     rl.question(query, answer => {
       rl.close();
-      resolve(answer.trim().toLowerCase());
+      resolve(answer.trim());
     });
   });
+}
+
+// Resolves which agent ecosystems to install support for: an explicit --agents
+// flag wins outright; otherwise prompt interactively (TTY) so the user picks
+// only what they actually use instead of every proprietary format landing in
+// their repo unasked; a non-interactive run with nothing specified falls back
+// to just the vendor-neutral AGENTS.md.
+async function resolveAgentTargets(rawFlag: string | undefined): Promise<AgentTarget[]> {
+  const fromFlag = parseAgentTargets(rawFlag);
+  if (fromFlag) return fromFlag;
+
+  if (!process.stdin.isTTY) return DEFAULT_AGENT_TARGETS;
+
+  console.log(`\n${pc.cyan('?')} Which AI agent(s)/IDE(s) do you use? (comma-separated numbers, or "all")`);
+  AGENT_TARGETS.forEach((t, i) => {
+    console.log(`   ${pc.bold(String(i + 1))}. ${t.label} ${pc.dim(`— ${t.installs}`)}`);
+  });
+  const answer = await askQuestion(`   ${pc.dim(`[default: ${DEFAULT_AGENT_TARGETS.join(', ')}]`)} > `);
+
+  if (!answer) return DEFAULT_AGENT_TARGETS;
+  if (answer.trim().toLowerCase() === 'all') return AGENT_TARGETS.map(t => t.id);
+
+  const chosen = answer
+    .split(',')
+    .map(s => parseInt(s.trim(), 10))
+    .filter(n => Number.isInteger(n) && n >= 1 && n <= AGENT_TARGETS.length)
+    .map(n => AGENT_TARGETS[n - 1].id);
+
+  return chosen.length > 0 ? Array.from(new Set(chosen)) : DEFAULT_AGENT_TARGETS;
 }
 
 // Default action: if no command passed, launch UI
@@ -63,16 +98,15 @@ program
   .command('init')
   .description('Map the existing codebase, create .what-is-it.bin, and install agent skills')
   .option('-f, --force', 'Overwrite existing state if already initialized')
-  .option('-g, --global', 'Install agent skill globally for all projects')
-  .option('--no-global', 'Do not install skill globally')
+  .option('--agents <list>', `Comma-separated agent targets to install (${AGENT_TARGETS.map(t => t.id).join(', ')}, or "all"); prompts interactively if omitted`)
   .action((options) => {
     runInit(process.cwd(), options);
   });
 
-async function runInit(cwd: string, options: { force?: boolean; global?: boolean; open?: boolean } = {}) {
+async function runInit(cwd: string, options: { force?: boolean; open?: boolean; agents?: string } = {}) {
   if (projectExists(cwd) && !options.force) {
     console.log(pc.yellow(`⚠️ ${DEFAULT_FILE_NAME} already exists in ${cwd}.`));
-    console.log(`Use ${pc.cyan('--force')} to overwrite, or run ${pc.cyan('npx @shakthizen/what-is-it')} to open viewer.`);
+    console.log(`Use ${pc.cyan('--force')} to overwrite, or run ${pc.cyan('npx what-is-it')} to open viewer.`);
     return;
   }
 
@@ -92,44 +126,45 @@ async function runInit(cwd: string, options: { force?: boolean; global?: boolean
     console.log(pc.green(`✔ Generated markdown overview: ${mdPath}`));
   }
 
-  // Install agent skills & slash commands
+  // Install agent skills & slash commands only for the ecosystem(s) the user actually uses
+  const agents = await resolveAgentTargets(options.agents);
   const { skillPath, rulesUpdated, slashCommands } = installSkills({
     rootDir: cwd,
-    meta: projectData.meta
+    meta: projectData.meta,
+    agents
   });
-  console.log(pc.green(`✔ Installed project-specific skill: ${skillPath}`));
-  console.log(pc.green(`✔ Installed native slash commands: ${slashCommands.join(', ')}`));
+  if (skillPath) {
+    console.log(pc.green(`✔ Installed project-specific skill: ${skillPath}`));
+  }
+  if (slashCommands.length > 0) {
+    console.log(pc.green(`✔ Installed native slash commands: ${slashCommands.join(', ')}`));
+  }
   if (rulesUpdated.length > 0) {
     console.log(pc.green(`✔ Updated multi-agent rules: ${rulesUpdated.join(', ')}`));
   }
 
-  // Ask for global skill installation if interactive
-  let shouldInstallGlobal = options.global === true;
-  if (!shouldInstallGlobal && options.global !== false && process.stdin.isTTY) {
-    const answer = await askQuestion(`\n${pc.cyan('?')} Install what-is-it skill globally for all projects on this machine? (Y/n) `);
-    if (answer === '' || answer === 'y' || answer === 'yes') {
-      shouldInstallGlobal = true;
-    }
-  }
-
-  if (shouldInstallGlobal) {
-    const { globalSkillPath, success } = installGlobalSkill();
-    if (success) {
-      console.log(pc.green(`✔ Installed global agent skill: ${globalSkillPath}`));
-    }
-  }
-
-  // Prominent onboarding call-to-action banner
+  // Prominent onboarding call-to-action banner. Only advertise slash commands
+  // that were actually installed (e.g. an agents-md-only install has none).
   console.log('\n' + pc.bold(pc.cyan('═'.repeat(68))));
   console.log(pc.bold(pc.green('  🎉 what-is-it project memory initialized successfully!')));
   console.log(pc.bold(pc.cyan('═'.repeat(68))));
   console.log(`\n${pc.bold(pc.yellow('👉 NEXT STEP (DELEGATE TO YOUR AI AGENT):'))}`);
-  console.log(`   Open your AI Agent chat (Antigravity, Cursor, Claude Code) and type:`);
-  console.log(`   ${pc.bold(pc.magenta('/what-is-it-init'))}`);
-  console.log(`   ${pc.dim('-> Your agent will analyze the codebase and formulate deep domain tasks & user flows.')}\n`);
-  console.log(`   ${pc.bold(pc.cyan('/status'))}        - Check active tasks and progress anytime`);
-  console.log(`   ${pc.bold(pc.cyan('/task-done'))}     - Mark tasks done as you code`);
-  console.log(`   ${pc.bold(pc.cyan('npx @shakthizen/what-is-it'))} - Open the live web viewer in your browser\n`);
+  if (slashCommands.includes('/wii-init')) {
+    console.log(`   Open your AI Agent chat and type:`);
+    console.log(`   ${pc.bold(pc.magenta('/wii-init'))}`);
+    console.log(`   ${pc.dim('-> Your agent will analyze the codebase and formulate deep domain tasks & user flows.')}\n`);
+    if (slashCommands.includes('/wii-status')) {
+      console.log(`   ${pc.bold(pc.cyan('/wii-status'))}     - Check active tasks and progress anytime`);
+    }
+    if (slashCommands.includes('/wii-task-done')) {
+      console.log(`   ${pc.bold(pc.cyan('/wii-task-done'))}  - Mark tasks done as you code`);
+    }
+  } else {
+    console.log(`   Tell your AI agent to read the project instructions installed above (${rulesUpdated.join(', ') || 'your rule file'})`);
+    console.log(`   and do a deep pass: read the real code, replace the baseline with verified features and`);
+    console.log(`   user flows, then run ${pc.cyan('npx what-is-it import <file.json>')} with the result.\n`);
+  }
+  console.log(`   ${pc.bold(pc.cyan('npx what-is-it'))} - Open the live web viewer in your browser\n`);
   console.log(pc.bold(pc.cyan('═'.repeat(68))) + '\n');
 }
 
@@ -141,7 +176,7 @@ program
     const cwd = process.cwd();
     const data = loadProjectData(cwd);
     if (!data) {
-      console.error(formatCavemanError(`No ${DEFAULT_FILE_NAME} found. Run 'npx @shakthizen/what-is-it init' first.`));
+      console.error(formatCavemanError(`No ${DEFAULT_FILE_NAME} found. Run 'npx what-is-it init' first.`));
       process.exit(1);
     }
     console.log(formatCavemanStatus(data));
@@ -155,29 +190,28 @@ program
     console.log(JSON.stringify(getProjectJsonSchema(), null, 2));
   });
 
-// Standalone skill installer
+// Standalone skill installer (project-scoped only — no global/user-wide install)
 program
   .command('install-skill')
-  .description('Install agent skills, rules, and slash commands')
-  .option('-g, --global', 'Install globally into user config directory')
-  .action((options) => {
+  .description('Install this project\'s agent skill, rules, and slash commands')
+  .option('--agents <list>', `Comma-separated agent targets to install (${AGENT_TARGETS.map(t => t.id).join(', ')}, or "all"); prompts interactively if omitted`)
+  .action(async (options) => {
     const cwd = process.cwd();
-    if (options.global) {
-      const { globalSkillPath, success } = installGlobalSkill();
-      if (success) {
-        console.log(pc.green(`✔ Installed global agent skill: ${globalSkillPath}`));
-      }
-    } else {
-      const data = loadProjectData(cwd);
-      const { skillPath, rulesUpdated, slashCommands } = installSkills({
-        rootDir: cwd,
-        meta: data?.meta
-      });
+    const data = loadProjectData(cwd);
+    const agents = await resolveAgentTargets(options.agents);
+    const { skillPath, rulesUpdated, slashCommands } = installSkills({
+      rootDir: cwd,
+      meta: data?.meta,
+      agents
+    });
+    if (skillPath) {
       console.log(pc.green(`✔ Installed project-specific skill: ${skillPath}`));
+    }
+    if (slashCommands.length > 0) {
       console.log(pc.green(`✔ Installed slash commands: ${slashCommands.join(', ')}`));
-      if (rulesUpdated.length > 0) {
-        console.log(pc.green(`✔ Updated rules: ${rulesUpdated.join(', ')}`));
-      }
+    }
+    if (rulesUpdated.length > 0) {
+      console.log(pc.green(`✔ Updated rules: ${rulesUpdated.join(', ')}`));
     }
   });
 
@@ -361,7 +395,7 @@ program
       const raw = fs.readFileSync(fullPath, 'utf-8');
       const incoming = JSON.parse(raw) as any;
       if (!validateProjectData(incoming)) {
-        console.error(formatCavemanError('Import file does not match the expected project data shape. Run `npx @shakthizen/what-is-it schema` to inspect the required structure.'));
+        console.error(formatCavemanError('Import file does not match the expected project data shape. Run `npx what-is-it schema` to inspect the required structure.'));
         process.exit(1);
       }
       saveProjectData(cwd, incoming);

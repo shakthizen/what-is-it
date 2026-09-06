@@ -7,32 +7,32 @@ globs: *
 Ugg. This project tracks live memory, tasks, architecture, and UI flows with `@shakthizen/what-is-it`.
 
 ### 1. SESSION START / ORIENTATION:
-- ALWAYS run `npx @shakthizen/what-is-it status` at session start BEFORE editing files or making assumptions.
+- ALWAYS run `npx what-is-it status` at session start BEFORE editing files or making assumptions.
 - Inspect the `CURRENT FOCUS (DO NOW)` task: read WHY (rationale), WHERE (target files), HOW (approach), WHEN (phase).
 - If no active task, inspect `NEXT QUEUED TASK` or check with developer.
 
 ### 2. TASK COMPLETION:
 - When code is implemented and verified (tests pass, lint clean), immediately mark the task complete:
-  `npx @shakthizen/what-is-it task done <task-id>`
+  `npx what-is-it task done <task-id>`
 - This updates `.what-is-it.bin`, recalculates overall project & feature progress, regenerates `WHAT_IS_IT.md`, and broadcasts live SSE updates to the dashboard.
 
 ### 3. ADDING DISCOVERED TASKS (THE 4 W's):
 - When new work, bug fixes, or refactors are discovered, record them with all 4 W's:
-  `npx @shakthizen/what-is-it task add --feature "<feature-id>" --title "<title>" --why "<rationale>" --how "<implementation>" --where "<files>" --when "<phase>" [--priority high|medium|low|urgent]`
+  `npx what-is-it task add --feature "<feature-id>" --title "<title>" --why "<rationale>" --how "<implementation>" --where "<files>" --when "<phase>" [--priority high|medium|low|urgent]`
 
 ### 4. FEATURE SCOPING:
 - When planning a major architectural module or domain:
-  `npx @shakthizen/what-is-it feature add --id "<feature-id>" --title "<title>" --desc "<description>" --category "<category>"`
+  `npx what-is-it feature add --id "<feature-id>" --title "<title>" --desc "<description>" --category "<category>"`
 
 ### 5. INSPECTION & SCHEMA:
-- List all tasks: `npx @shakthizen/what-is-it task list`
-- Inspect complete JSON schema: `npx @shakthizen/what-is-it schema`
-- Export full state: `npx @shakthizen/what-is-it export --format json`
-- Bulk import state: `npx @shakthizen/what-is-it import <file.json>`
-- View live visual web viewer: `npx @shakthizen/what-is-it`
+- List all tasks: `npx what-is-it task list`
+- Inspect complete JSON schema: `npx what-is-it schema`
+- Export full state: `npx what-is-it export --format json`
+- Bulk import state: `npx what-is-it import <file.json>`
+- View live visual web viewer: `npx what-is-it`
 
-### 6. CODEBASE BOOTSTRAP (/what-is-it-init):
-- If memory is empty or re-indexing is needed, run `/what-is-it-init` to analyze routes, components, APIs, and populate domain tasks, wiki docs, and visual user flows.
+### 6. CODEBASE BOOTSTRAP (/wii-init):
+- If memory is empty or re-indexing is needed, run `/wii-init` to analyze routes, components, APIs, and populate domain tasks, wiki docs, and visual user flows.
 
 ### 7. CORE TENETS:
 - **No Vibe Amnesia**: If it is not recorded in `.what-is-it.bin`, future sessions will lose context.
